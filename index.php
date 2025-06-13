@@ -6,6 +6,7 @@ include './include/inc/header.php';
 
 $error = '';
 
+
 echo "<script>alert('BASE_URL: " . BASE_URL . "');</script>";
 exit;
 
