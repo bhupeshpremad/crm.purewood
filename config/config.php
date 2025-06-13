@@ -7,23 +7,16 @@ if (!defined('ROOT_DIR_PATH')) {
 if (!defined('BASE_URL')) {
     $serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
 
+    define('BASE_URL_LOCAL', 'http://localhost/php_erp/');
+    define('BASE_URL_LIVE', 'https://crm.purewood.in/');
+
     if ($serverName === 'crm.purewood.in') {
-        define('BASE_URL', 'https://crm.purewood.in/');
+        define('BASE_URL', BASE_URL_LIVE);
     } else {
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-        $host = $_SERVER['HTTP_HOST'];
-        $documentRoot = str_replace('\\', '/', rtrim($_SERVER['DOCUMENT_ROOT'], '/\\'));
-        $projectRootFileSystemPath = str_replace('\\', '/', rtrim(ROOT_DIR_PATH, '/\\'));
-        $webRelativePath = str_replace($documentRoot, '', $projectRootFileSystemPath);
-        $finalWebPath = '/' . ltrim($webRelativePath, '/');
-        $baseUrl = rtrim($protocol . $host . rtrim($finalWebPath, '/'), '/') . '/';
-        define('BASE_URL', $baseUrl);
+        define('BASE_URL', BASE_URL_LOCAL);
     }
 }
 
-if (!defined('ROOT_DIR_PATH')) {
-    define('ROOT_DIR_PATH', realpath(__DIR__ . '/../') . DIRECTORY_SEPARATOR);
-}
 if (!defined('ROOT_DIR_PATH')) {
     define('ROOT_DIR_PATH', realpath(__DIR__ . '/../') . DIRECTORY_SEPARATOR);
 }
