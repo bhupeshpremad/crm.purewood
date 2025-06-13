@@ -7,33 +7,40 @@ if (!defined('ROOT_DIR_PATH')) {
 }
 
 if (!defined('BASE_URL')) {
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-    $host = $_SERVER['HTTP_HOST']; // e.g., 'localhost'
+    $serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
 
-    // Get the server's document root, normalize slashes, and remove any trailing slash.
-    // Example: 'C:/xampp/htdocs'
-    $documentRoot = str_replace('\\', '/', rtrim($_SERVER['DOCUMENT_ROOT'], '/\\'));
+    if ($serverName === 'crm.purewood.in') {
+        // Live server base URL override
+        define('BASE_URL', 'https://crm.purewood.in/');
+    } else {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST']; // e.g., 'localhost'
 
-    // Get the project's root directory path on the file system, normalize slashes, and remove any trailing slash.
-    // Example: 'C:/xampp/htdocs/php_erp/purewood'
-    $projectRootFileSystemPath = str_replace('\\', '/', rtrim(ROOT_DIR_PATH, '/\\'));
+        // Get the server's document root, normalize slashes, and remove any trailing slash.
+        // Example: 'C:/xampp/htdocs'
+        $documentRoot = str_replace('\\', '/', rtrim($_SERVER['DOCUMENT_ROOT'], '/\\'));
 
-    // Calculate the web path of the project relative to the document root.
-    // This should result in something like '/php_erp/purewood' if the project is in a subfolder,
-    // or an empty string if the project is directly in the document root.
-    $webRelativePath = str_replace($documentRoot, '', $projectRootFileSystemPath);
+        // Get the project's root directory path on the file system, normalize slashes, and remove any trailing slash.
+        // Example: 'C:/xampp/htdocs/php_erp/purewood'
+        $projectRootFileSystemPath = str_replace('\\', '/', rtrim(ROOT_DIR_PATH, '/\\'));
 
-    // Ensure the path starts with a slash (e.g., '/' or '/php_erp/purewood').
-    // This handles cases where the project is at the document root (webRelativePath is empty)
-    // or in a subdirectory.
-    $finalWebPath = '/' . ltrim($webRelativePath, '/');
-    
-    // Construct the base URL.
-    // This ensures it ends with a single trailing slash.
-    // Example: 'http://localhost/' or 'http://localhost/php_erp/purewood/'
-    $baseUrl = rtrim($protocol . $host . rtrim($finalWebPath, '/'), '/') . '/';
+        // Calculate the web path of the project relative to the document root.
+        // This should result in something like '/php_erp/purewood' if the project is in a subfolder,
+        // or an empty string if the project is directly in the document root.
+        $webRelativePath = str_replace($documentRoot, '', $projectRootFileSystemPath);
 
-    define('BASE_URL', $baseUrl);
+        // Ensure the path starts with a slash (e.g., '/' or '/php_erp/purewood').
+        // This handles cases where the project is at the document root (webRelativePath is empty)
+        // or in a subdirectory.
+        $finalWebPath = '/' . ltrim($webRelativePath, '/');
+        
+        // Construct the base URL.
+        // This ensures it ends with a single trailing slash.
+        // Example: 'http://localhost/' or 'http://localhost/php_erp/purewood/'
+        $baseUrl = rtrim($protocol . $host . rtrim($finalWebPath, '/'), '/') . '/';
+
+        define('BASE_URL', $baseUrl);
+    }
 }
 
 // The original ROOT_DIR_PATH definition is kept (and moved above).
