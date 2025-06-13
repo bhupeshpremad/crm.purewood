@@ -51,8 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Custom styles for this template-->
     <link href="<?php echo BASE_URL; ?>assets/css/sb-admin-2.min.css" rel="stylesheet">
 </head>
-
 <body class="bg-gradient-primary">
+<script>
+    console.log('BASE_URL:', '<?php echo BASE_URL; ?>');
+</script>
 
     <div class="container">
 
