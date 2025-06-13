@@ -8,14 +8,7 @@ if (!defined('BASE_URL')) {
     $serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
 
     if ($serverName === 'crm.purewood.in') {
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-        $host = $_SERVER['HTTP_HOST'];
-        $documentRoot = str_replace('\\', '/', rtrim($_SERVER['DOCUMENT_ROOT'], '/\\'));
-        $projectRootFileSystemPath = str_replace('\\', '/', rtrim(ROOT_DIR_PATH, '/\\'));
-        $webRelativePath = str_replace($documentRoot, '', $projectRootFileSystemPath);
-        $finalWebPath = '/' . ltrim($webRelativePath, '/');
-        $baseUrl = rtrim($protocol . $host . rtrim($finalWebPath, '/'), '/') . '/';
-        define('BASE_URL', $baseUrl);
+        define('BASE_URL', 'https://crm.purewood.in/');
     } else {
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
         $host = $_SERVER['HTTP_HOST'];
