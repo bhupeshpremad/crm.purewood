@@ -6,7 +6,7 @@ include './include/inc/header.php';
 
 $error = '';
 
-echo 'BASE_URL: ' . BASE_URL;
+echo "<script>alert('BASE_URL: " . BASE_URL . "');</script>";
 exit;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
