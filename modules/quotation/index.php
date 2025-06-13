@@ -158,7 +158,7 @@ try {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-<script src="/php_erp/purewood/modules/quotation/assets/js/lock-quotation.js"></script>
+<script src="<?php echo BASE_URL; ?>modules/quotation/assets/js/lock-quotation.js"></script>
 
 <script>
 $(document).ready(function() {
@@ -259,7 +259,7 @@ $(document).ready(function() {
         var newApprove = button.hasClass('btn-success') ? 0 : 1;
 
         $.ajax({
-            url: '/php_erp/purewood/modules/quotation/ajax_update_quotation_status.php',
+            url: '<?php echo BASE_URL; ?>modules/quotation/ajax_update_quotation_status.php',
             type: 'POST',
             data: { quotation_id: quotationId, approve: newApprove },
             dataType: 'json',
@@ -285,13 +285,13 @@ $(document).ready(function() {
     // Handle per-row Excel export button click
     $('#quotationsTable').on('click', '.exportExcelBtn', function() {
         var quotationId = $(this).data('id');
-        window.location.href = '/php_erp/purewood/modules/quotation/export_quotation_excel.php?id=' + quotationId;
+        window.location.href = '<?php echo BASE_URL; ?>modules/quotation/export_quotation_excel.php?id=' + quotationId;
     });
 
     // Handle per-row PDF export button click
     $('#quotationsTable').on('click', '.exportPdfBtn', function() {
         var quotationId = $(this).data('id');
-        window.location.href = '/php_erp/purewood/modules/quotation/export_quotation_pdf.php?id=' + quotationId;
+        window.location.href = '<?php echo BASE_URL; ?>modules/quotation/export_quotation_pdf.php?id=' + quotationId;
     });
 });
 </script>
