@@ -15,12 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($auth->login('superadmin', $email, $password)) {
         $_SESSION['user_type'] = 'superadmin';
         $_SESSION['user_email'] = $email;
-        header('Location: /php_erp/purewood/superadmin/superadmin_dashboard.php');
+        header('Location: /superadmin/superadmin_dashboard.php');
         exit();
     } elseif ($auth->login('salesadmin', $email, $password)) {
         $_SESSION['user_type'] = 'salesadmin';
         $_SESSION['user_email'] = $email;
-        header('Location: /php_erp/purewood/salesadmin/salesadmin_dashboard.php');
+        header('Location: /salesadmin/salesadmin_dashboard.php');
         exit();
     } else {
         $error = 'Invalid email or password.';
