@@ -4,6 +4,9 @@ include './config/config.php';
 include './core/auth.php';
 include './include/inc/header.php';
 
+echo 'BASE_URL: ' . BASE_URL;
+exit;
+
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
