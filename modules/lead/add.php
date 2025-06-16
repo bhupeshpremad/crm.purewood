@@ -1,11 +1,24 @@
 <?php
-include_once '../../../config/config.php';
-include_once '../../../include/inc/header.php';
-include_once '../../sidebar.php';
+include_once __DIR__ . '/../../config/config.php';
+if (!defined('ROOT_DIR_PATH')) {
+    define('ROOT_DIR_PATH', __DIR__ . '/../../' . DIRECTORY_SEPARATOR);
+}
+include_once ROOT_DIR_PATH . 'include/inc/header.php';
+session_start();
+$user_type = $_SESSION['user_type'] ?? 'guest';
+
+if ($user_type === 'superadmin') {
+    include_once ROOT_DIR_PATH . 'superadmin/sidebar.php';
+} elseif ($user_type === 'salesadmin') {
+    include_once ROOT_DIR_PATH . 'salesadmin/sidebar.php';
+} else {
+    // Default or guest sidebar or no sidebar
+    // include_once ROOT_DIR_PATH . 'include/inc/sidebar.php';
+}
 ?>
 
 <div class="container-fluid">
-    <?php include_once '../../../include/inc/topbar.php'; ?>
+    <?php include_once ROOT_DIR_PATH . 'include/inc/topbar.php'; ?>
 
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
@@ -262,4 +275,4 @@ $('#leadForm').on('submit', function(e) {
 });
 </script>
 
-<?php include_once '../../../include/inc/footer.php'; ?>
+<?php include_once ROOT_DIR_PATH . 'include/inc/footer.php'; ?>

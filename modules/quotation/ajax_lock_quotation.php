@@ -10,8 +10,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        $database = new Database();
-        $conn = $database->getConnection();
+        // $database = new Database();
+        // $conn = $database->getConnection();
+
+        global $conn;
 
         // Update the locked status to 1 (locked)
         $stmt = $conn->prepare("UPDATE quotations SET locked = 1 WHERE id = ?");

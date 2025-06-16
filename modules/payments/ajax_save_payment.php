@@ -1,4 +1,5 @@
 <?php
+
 include_once '../../config/config.php';
 
 header('Content-Type: application/json');
@@ -6,8 +7,13 @@ header('Content-Type: application/json');
 $response = ['success' => false, 'message' => 'Invalid request'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $database = new Database();
-    $pdo = $database->getConnection();
+    global $conn;
+
+    if (!$conn instanceof PDO) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database connection not established.']);
+        exit;
+    }
 
     $payment_id = isset($_POST['payment_id']) && $_POST['payment_id'] !== '' ? intval($_POST['payment_id']) : 0;
 
@@ -15,84 +21,115 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $po_amt = filter_var($_POST['po_amt'] ?? 0, FILTER_VALIDATE_FLOAT);
     $son_number = htmlspecialchars(trim($_POST['son_number'] ?? ''));
     $soa_number = filter_var($_POST['soa_number'] ?? 0, FILTER_VALIDATE_FLOAT);
-    $jc_number = htmlspecialchars(trim($_POST['jc_number'] ?? ''));
-    $jc_amt = filter_var($_POST['jc_amt'] ?? 0, FILTER_VALIDATE_FLOAT);
-    $supplier_name = htmlspecialchars(trim($_POST['supplier_name'] ?? ''));
-    $invoice_number = htmlspecialchars(trim($_POST['invoice_number'] ?? ''));
-    $invoice_amount = filter_var($_POST['invoice_amount'] ?? 0, FILTER_VALIDATE_FLOAT);
-    $cheque_number = htmlspecialchars(trim($_POST['cheque_number'] ?? ''));
-    $ptm_amount = filter_var($_POST['ptm_amount'] ?? 0, FILTER_VALIDATE_FLOAT);
-    $pd_acc_number = htmlspecialchars(trim($_POST['pd_acc_number'] ?? ''));
-    $payment_invoice_date = $_POST['payment_invoice_date'] ?? '';
 
-    $items_json = $_POST['items'] ?? '[]';
-    $items = json_decode($items_json, true);
+    $job_cards_json = $_POST['job_cards'] ?? '[]';
+    $job_cards = json_decode($job_cards_json, true);
 
-    if (empty($son_number) || $soa_number === false || empty($jc_number) || $jc_amt === false || empty($invoice_number) || $invoice_amount === false || $ptm_amount === false || empty($pd_acc_number) || empty($payment_invoice_date)) {
-        $response['message'] = 'Required fields are missing or invalid.';
+    $suppliers_json = $_POST['suppliers'] ?? '[]';
+    $suppliers = json_decode($suppliers_json, true);
+
+    $payments_json = $_POST['payments'] ?? '[]';
+    $payments = json_decode($payments_json, true);
+
+    if ($po_amt === false || empty($son_number) || $soa_number === false) {
+        $response['message'] = 'Required PO Information fields are missing or invalid.';
         echo json_encode($response);
         exit;
     }
 
     try {
-        $pdo->beginTransaction();
+        $conn->beginTransaction();
 
         if ($payment_id > 0) {
-            $stmt = $pdo->prepare("UPDATE payments SET
-                pon_number = ?, po_amt = ?, son_number = ?, soa_number = ?,
-                jc_number = ?, jc_amt = ?, supplier_name = ?, invoice_number = ?,
-                invoice_amount = ?, cheque_number = ?, ptm_amount = ?,
-                pd_acc_number = ?, payment_invoice_date = ?
+            $stmt = $conn->prepare("UPDATE payments SET
+                pon_number = ?, po_amt = ?, son_number = ?, soa_number = ?
                 WHERE id = ?");
 
             $stmt->execute([
-                $pon_number, $po_amt, $son_number, $soa_number,
-                $jc_number, $jc_amt, $supplier_name, $invoice_number,
-                $invoice_amount, $cheque_number, $ptm_amount,
-                $pd_acc_number, $payment_invoice_date, $payment_id
+                $pon_number, $po_amt, $son_number, $soa_number, $payment_id
             ]);
 
-            $stmt_delete_items = $pdo->prepare("DELETE FROM payment_items WHERE payment_id = ?");
-            $stmt_delete_items->execute([$payment_id]);
+            // Delete existing related records
+            $conn->prepare("DELETE FROM job_cards WHERE payment_id = ?")->execute([$payment_id]);
+            $conn->prepare("DELETE FROM supplier_items WHERE supplier_id IN (SELECT id FROM suppliers WHERE payment_id = ?)")->execute([$payment_id]);
+            $conn->prepare("DELETE FROM suppliers WHERE payment_id = ?")->execute([$payment_id]);
+            $conn->prepare("DELETE FROM payment_details WHERE payment_id = ?")->execute([$payment_id]);
 
         } else {
-            $stmt = $pdo->prepare("INSERT INTO payments (
-                pon_number, po_amt, son_number, soa_number,
-                jc_number, jc_amt, supplier_name, invoice_number,
-                invoice_amount, cheque_number, ptm_amount,
-                pd_acc_number, payment_invoice_date
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO payments (
+                pon_number, po_amt, son_number, soa_number
+            ) VALUES (?, ?, ?, ?)");
 
             $stmt->execute([
-                $pon_number, $po_amt, $son_number, $soa_number,
-                $jc_number, $jc_amt, $supplier_name, $invoice_number,
-                $invoice_amount, $cheque_number, $ptm_amount,
-                $pd_acc_number, $payment_invoice_date
+                $pon_number, $po_amt, $son_number, $soa_number
             ]);
-            $payment_id = $pdo->lastInsertId();
+            $payment_id = $conn->lastInsertId();
         }
 
-        $stmt_items = $pdo->prepare("INSERT INTO payment_items (payment_id, item_name, item_quantity, item_price, item_amount) VALUES (?, ?, ?, ?, ?)");
-        foreach ($items as $item) {
-            $itemName = htmlspecialchars(trim($item['name'] ?? ''));
-            $itemQuantity = filter_var($item['quantity'] ?? 0, FILTER_VALIDATE_INT);
-            $itemPrice = filter_var($item['price'] ?? 0, FILTER_VALIDATE_FLOAT);
-            $itemAmount = filter_var($item['amount'] ?? 0, FILTER_VALIDATE_FLOAT);
-
-            if (empty($itemName) || $itemQuantity === false || $itemPrice === false || $itemAmount === false || $itemQuantity < 0 || $itemPrice < 0) {
+        // Insert job cards
+        $stmt_job_card = $conn->prepare("INSERT INTO job_cards (payment_id, jc_number, jc_amt) VALUES (?, ?, ?)");
+        foreach ($job_cards as $job_card) {
+            $jc_number = htmlspecialchars(trim($job_card['jc_number'] ?? ''));
+            $jc_amt = filter_var($job_card['jc_amt'] ?? 0, FILTER_VALIDATE_FLOAT);
+            if (empty($jc_number) || $jc_amt === false) {
                 continue;
             }
-            $stmt_items->execute([$payment_id, $itemName, $itemQuantity, $itemPrice, $itemAmount]);
+            $stmt_job_card->execute([$payment_id, $jc_number, $jc_amt]);
         }
 
-        $pdo->commit();
+        // Insert suppliers and supplier items
+        $stmt_supplier = $conn->prepare("INSERT INTO suppliers (payment_id, supplier_name, invoice_number, invoice_amount) VALUES (?, ?, ?, ?)");
+        $stmt_supplier_item = $conn->prepare("INSERT INTO supplier_items (supplier_id, item_name, item_quantity, item_price, item_amount) VALUES (?, ?, ?, ?, ?)");
+
+        foreach ($suppliers as $supplier) {
+            $supplier_name = htmlspecialchars(trim($supplier['name'] ?? ''));
+            $invoice_number = htmlspecialchars(trim($supplier['invoice_number'] ?? ''));
+            $invoice_amount = filter_var($supplier['invoice_amount'] ?? 0, FILTER_VALIDATE_FLOAT);
+            if (empty($supplier_name) || empty($invoice_number) || $invoice_amount === false) {
+                continue;
+            }
+            $stmt_supplier->execute([$payment_id, $supplier_name, $invoice_number, $invoice_amount]);
+            $supplier_id = $conn->lastInsertId();
+
+            if (!empty($supplier['items']) && is_array($supplier['items'])) {
+                foreach ($supplier['items'] as $item) {
+                    $item_name = htmlspecialchars(trim($item['name'] ?? ''));
+                    $item_quantity = filter_var($item['quantity'] ?? 0, FILTER_VALIDATE_INT);
+                    $item_price = filter_var($item['price'] ?? 0, FILTER_VALIDATE_FLOAT);
+                    $item_amount = filter_var($item['amount'] ?? 0, FILTER_VALIDATE_FLOAT);
+                    if (empty($item_name) || $item_quantity === false || $item_price === false || $item_amount === false) {
+                        continue;
+                    }
+                    $stmt_supplier_item->execute([$supplier_id, $item_name, $item_quantity, $item_price, $item_amount]);
+                }
+            }
+        }
+
+        // Insert payment details
+    $stmt_payment_detail = $conn->prepare("INSERT INTO payment_details (payment_id, payment_category, payment_type, cheque_number, pd_acc_number, payment_full_partial, ptm_amount, payment_invoice_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    foreach ($payments as $payment) {
+        $payment_category = $payment['payment_category'] ?? 'Job Card';
+        $payment_type = htmlspecialchars(trim($payment['payment_type'] ?? ''));
+        $cheque_number = htmlspecialchars(trim($payment['cheque_number'] ?? ''));
+        $pd_acc_number = htmlspecialchars(trim($payment['pd_acc_number'] ?? ''));
+        $payment_full_partial = $payment['payment_full_partial'] ?? '';
+        $ptm_amount = filter_var($payment['ptm_amount'] ?? 0, FILTER_VALIDATE_FLOAT);
+        $payment_invoice_date = $payment['payment_invoice_date'] ?? '';
+
+        if (empty($payment_type) || empty($pd_acc_number) || empty($payment_full_partial) || $ptm_amount === false || empty($payment_invoice_date)) {
+            continue;
+        }
+        $stmt_payment_detail->execute([$payment_id, $payment_category, $payment_type, $cheque_number, $pd_acc_number, $payment_full_partial, $ptm_amount, $payment_invoice_date]);
+    }
+
+        $conn->commit();
 
         $response['success'] = true;
         $response['message'] = $payment_id > 0 ? 'Payment updated successfully.' : 'Payment added successfully.';
         $response['payment_id'] = $payment_id;
 
     } catch (Exception $e) {
-        $pdo->rollBack();
+        $conn->rollBack();
         $response['message'] = 'Error saving payment: ' . $e->getMessage();
     }
 }

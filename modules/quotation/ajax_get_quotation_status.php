@@ -1,5 +1,5 @@
 <?php
-include_once __DIR__ . '/../../../config/config.php';
+include_once __DIR__ . '/../../config/config.php';
 
 header('Content-Type: application/json');
 
@@ -12,9 +12,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     try {
-        $database = new Database();
-        $conn = $database->getConnection();
+        /** @var PDO $conn */
+        global $conn;
 
+        /** @var PDOStatement $stmt */
         $stmt = $conn->prepare("SELECT qs.id, q.quotation_number, qs.status_text, qs.status_date FROM quotation_status qs JOIN quotations q ON qs.quotation_id = q.id WHERE qs.quotation_id = :quotation_id ORDER BY qs.id DESC");
         $stmt->execute([':quotation_id' => $quotation_id]);
         $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);

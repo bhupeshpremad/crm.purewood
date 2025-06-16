@@ -9,8 +9,11 @@ if (!isset($_GET['lead_id']) || empty($_GET['lead_id'])) {
 $lead_id = intval($_GET['lead_id']);
 
 try {
-    $database = new Database();
-    $conn = $database->getConnection();
+    // $database = new Database();
+    // $conn = $database->getConnection();
+
+    global $conn;
+
 
     $stmt = $conn->prepare("SELECT quotation_number, quotation_date FROM quotations WHERE lead_id = ?");
     $stmt->execute([$lead_id]);

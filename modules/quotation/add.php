@@ -19,6 +19,7 @@ if ($user_type === 'superadmin') {
 $editMode = false;
 $quotation = null;
 $products = [];
+$error = null; // Initialize error variable
 
 $disableLeadDropdown = false;
 $selectedLeadId = null;
@@ -27,35 +28,58 @@ if (isset($_GET['lead_id']) && is_numeric($_GET['lead_id'])) {
     $disableLeadDropdown = true;
 }
 
-$database = new Database();
-$conn = $database->getConnection();
+global $conn;
 
-try {
-    if (isset($_GET['id']) && is_numeric($_GET['id'])) {
-        $editMode = true;
-        $quotationId = intval($_GET['id']);
+// Essential: Check if $conn is a valid PDO object before proceeding
+if (!$conn instanceof PDO) {
+    $error = 'Database connection not established. Check config.php.';
+    $approvedLeads = []; // Ensure approvedLeads is initialized even on connection failure
+} else {
+    try {
+        if (isset($_GET['id']) && is_numeric($_GET['id'])) {
+            $editMode = true;
+            $quotationId = intval($_GET['id']);
 
-        $stmt = $conn->prepare("SELECT * FROM quotations WHERE id = :id");
-        $stmt->execute([':id' => $quotationId]);
-        $quotation = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt = $conn->prepare("SELECT * FROM quotations WHERE id = :id");
+            if ($stmt === false) {
+                throw new Exception('Failed to prepare statement for fetching quotation.');
+            }
+            $stmt->execute([':id' => $quotationId]);
+            $quotation = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($quotation) {
-            $stmt2 = $conn->prepare("SELECT * FROM quotation_products WHERE quotation_id = :id");
-            $stmt2->execute([':id' => $quotationId]);
-            $products = $stmt2->fetchAll(PDO::FETCH_ASSOC);
-        } else {
-            $error = "Quotation not found.";
+            if ($quotation) {
+                $stmt2 = $conn->prepare("SELECT * FROM quotation_products WHERE quotation_id = :id");
+                if ($stmt2 === false) {
+                    throw new Exception('Failed to prepare statement for fetching quotation products.');
+                }
+                $stmt2->execute([':id' => $quotationId]);
+                $products = $stmt2->fetchAll(PDO::FETCH_ASSOC); // This will now be called on a PDOStatement object
+            } else {
+                $error = "Quotation not found.";
+            }
         }
-    }
 
-    $stmt = $conn->prepare("SELECT * FROM leads WHERE approve = 1 ORDER BY lead_number ASC");
-    $stmt->execute();
-    $approvedLeads = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $approvedLeads = [];
-    $error = "Error fetching approved leads: " . $e->getMessage();
+        $stmt = $conn->prepare("SELECT * FROM leads WHERE approve = 1 ORDER BY lead_number ASC");
+        if ($stmt === false) {
+            throw new Exception('Failed to prepare statement for fetching approved leads.');
+        }
+        $stmt->execute();
+        $approvedLeads = $stmt->fetchAll(PDO::FETCH_ASSOC); // This will now be called on a PDOStatement object
+    } catch (PDOException $e) {
+        $approvedLeads = [];
+        $error = "Error fetching data: " . $e->getMessage();
+    } catch (Exception $e) { // Catch the custom exceptions thrown for prepare failures
+        $approvedLeads = [];
+        $error = "Application error: " . $e->getMessage();
+    }
 }
 ?>
+
+<?php if ($error): ?>
+    <div class="alert alert-danger" role="alert">
+        <?php echo $error; ?>
+    </div>
+<?php endif; ?>
 
 <div id="content-wrapper" class="d-flex flex-column">
     <div id="content">
@@ -374,7 +398,7 @@ try {
 
             // Fetch latest quotation number via AJAX when lead changes
             $.ajax({
-                url: '/php_erp/purewood/modules/quotation/get_latest_quotation_number.php',
+                url: '/php_erp/modules/quotation/get_latest_quotation_number.php',
                 type: 'GET',
                 dataType: 'json',
                 success: function(data) {
@@ -654,7 +678,7 @@ try {
             }
 
             $.ajax({
-                url: '/php_erp/purewood/modules/quotation/store.php',
+                url: '/php_erp/modules/quotation/store.php',
                 type: 'POST',
                 data: formData,
                 processData: false,

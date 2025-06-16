@@ -11,8 +11,9 @@ require '../../include/PHPMailer-master/src/SMTP.php';
 
 include '../../config/config.php';
 
-$database = new Database();
-$conn = $database->getConnection();
+/** @var PDO $conn */
+// $database = new Database();
+global $conn;
 
 // Check if the request is POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -32,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Get quotation details from database
     $query = "SELECT * FROM quotations WHERE id = :quotation_id";
+    /** @var PDOStatement $stmt */
     $stmt = $conn->prepare($query);
     $stmt->bindParam(':quotation_id', $quotation_id, PDO::PARAM_INT);
     $stmt->execute();
@@ -44,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Get product details for the quotation
     $product_query = "SELECT * FROM quotation_products WHERE quotation_id = :quotation_id";
+    /** @var PDOStatement $product_stmt */
     $product_stmt = $conn->prepare($product_query);
     $product_stmt->bindParam(':quotation_id', $quotation_id, PDO::PARAM_INT);
     $product_stmt->execute();

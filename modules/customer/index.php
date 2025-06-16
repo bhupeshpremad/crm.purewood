@@ -1,24 +1,40 @@
 <?php
-include_once __DIR__ . '/../../config/config.php';
-if (!defined('ROOT_DIR_PATH')) {
-    define('ROOT_DIR_PATH', __DIR__ . '/../../' . DIRECTORY_SEPARATOR);
-}
-include_once ROOT_DIR_PATH . 'include/inc/header.php';
 session_start();
+include_once __DIR__ . '/../../config/config.php';
+include_once ROOT_DIR_PATH . 'include/inc/header.php';
+
 $user_type = $_SESSION['user_type'] ?? 'guest';
+?>
+<script>
+    console.log("User Type: '<?php echo $user_type; ?>'");
+</script>
+<?php
 
 if ($user_type === 'superadmin') {
-    include_once __DIR__ . '/../../superadmin/sidebar.php';
+    ?>
+    <script>console.log("Including superadmin sidebar");</script>
+    <?php
+    include_once ROOT_DIR_PATH . 'superadmin/sidebar.php';
 } elseif ($user_type === 'salesadmin') {
-    include_once __DIR__ . '/../../salesadmin/sidebar.php';
+    ?>
+    <script>console.log("Including salesadmin sidebar");</script>
+    <?php
+    include_once ROOT_DIR_PATH . 'salesadmin/sidebar.php';
+} elseif ($user_type === 'accounts') {
+    ?>
+    <script>console.log("Including accountsadmin sidebar");</script>
+    <?php
+    include_once ROOT_DIR_PATH . 'accountsadmin/sidebar.php';
 } else {
-    // Default or guest sidebar or no sidebar
-    // include_once __DIR__ . '/../../include/inc/sidebar.php';
+    ?>
+    <script>console.log("No sidebar included");</script>
+    <?php
+    // include_once ROOT_DIR_PATH . 'include/inc/sidebar.php';
 }
+// ...existing code...
 
 try {
-    $database = new Database();
-    $conn = $database->getConnection();
+    global $conn;
 
     // Query to get customers with counts of leads, quotations, and PIs
     $stmt = $conn->query("

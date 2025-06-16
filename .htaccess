@@ -15,16 +15,22 @@ RewriteRule ^super-admin/?$ superadmin/superadmin_dashboard.php [L]
 RewriteRule ^salesadmin/?$ salesadmin/salesadmin_dashboard.php [L]
 RewriteRule ^sales-admin/?$ salesadmin/salesadmin_dashboard.php [L]
 
+RewriteRule ^accounts/?$ accounts/accounts_dashboard.php [L]
+RewriteRule ^account/?$ accounts/accounts_dashboard.php [L]
+RewriteRule ^accounts-admin/?$ accounts/accounts_dashboard.php [L]
+
 # Dashboard explicit URLs
 RewriteRule ^superadmin/dashboard/?$ superadmin/superadmin_dashboard.php [L]
 RewriteRule ^salesadmin/dashboard/?$ salesadmin/salesadmin_dashboard.php [L]
+RewriteRule ^accounts/dashboard/?$ accounts/accounts_dashboard.php [L]
 
 # Sidebar explicit URLs
 RewriteRule ^superadmin/sidebar/?$ superadmin/sidebar.php [L]
 RewriteRule ^salesadmin/sidebar/?$ salesadmin/sidebar.php [L]
+RewriteRule ^accounts/sidebar/?$ accounts/sidebar.php [L]
 
 # Login redirect
 RewriteRule ^login/?$ index.php [L]
 
 # Deny direct access to include folder for security
-RewriteRule ^include/ - [F,L]
+RewriteRule ^include/ -

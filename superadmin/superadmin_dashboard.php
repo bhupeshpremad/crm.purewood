@@ -24,10 +24,11 @@ include_once ROOT_DIR_PATH . 'include/inc/header.php';
             <!-- Main Content -->
             <div id="content">
 
-            <?php 
-                include_once ROOT_DIR_PATH . 'include/inc/topbar.php';
-            
-            ?>
+                <!-- Topbar -->
+                <?php
+                    include_once ROOT_DIR_PATH . 'include/inc/topbar.php'; 
+                ?>
+                <!-- End of Topbar -->
 
 
                 <!-- Begin Page Content -->

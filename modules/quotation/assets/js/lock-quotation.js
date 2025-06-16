@@ -6,7 +6,7 @@ $(document).ready(function() {
         button.prop('disabled', true).text('Locking...');
 
         $.ajax({
-            url: '/php_erp/purewood/modules/quotation/ajax_lock_quotation.php',
+            url: '/php_erp/modules/quotation/ajax_lock_quotation.php',
             type: 'POST',
             data: { quotation_id: quotationId },
             dataType: 'json',

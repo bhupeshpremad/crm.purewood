@@ -15,7 +15,21 @@ class Auth {
             [
                 'email' => 'sales@purewood.in',
                 'password' => 'Admin@123'
-            ]
+            ],
+             [
+                'email' => 'info@purewood.in',
+                'password' => 'Admin@123'
+            ],
+        ],
+        'accounts' => [
+            [
+                'email' => 'accounts@purewood.in',
+                'password' => 'Admin@123'
+            ],
+            [
+                'email' => 'lalit@purewood.in',
+                'password' => 'Admin@123'
+            ],
         ]
     ];
 

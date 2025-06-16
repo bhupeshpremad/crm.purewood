@@ -9,8 +9,11 @@ if (!isset($_GET['lead_id']) || empty($_GET['lead_id'])) {
 $lead_id = intval($_GET['lead_id']);
 
 try {
-    $database = new Database();
-    $conn = $database->getConnection();
+    // $database = new Database();
+    // $conn = $database->getConnection();
+
+    global $conn;
+
 
     $stmt = $conn->prepare("SELECT lead_number, entry_date FROM leads WHERE id = ?");
     $stmt->execute([$lead_id]);

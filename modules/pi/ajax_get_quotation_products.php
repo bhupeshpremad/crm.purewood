@@ -16,8 +16,11 @@ if (empty($_GET['quotation_id'])) {
 $quotationId = intval($_GET['quotation_id']);
 
 try {
-    $database = new Database();
-    $conn = $database->getConnection();
+    // $database = new Database();
+    // $conn = $database->getConnection();
+
+    global $conn;
+
 
     $stmt = $conn->prepare("SELECT item_name, item_code, description, assembly, item_h, item_w, item_d, box_h, box_w, box_d, cbm, wood_type, no_of_packet, iron_gauge, mdf_finish, quantity, price_usd, comments, product_image_name FROM quotation_products WHERE quotation_id = ?");
     $stmt->execute([$quotationId]);

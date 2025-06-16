@@ -8,17 +8,21 @@ session_start();
 $user_type = $_SESSION['user_type'] ?? 'guest';
 
 if ($user_type === 'superadmin') {
-    include_once __DIR__ . '/../../superadmin/sidebar.php';
+    include_once ROOT_DIR_PATH . 'superadmin/sidebar.php';
 } elseif ($user_type === 'salesadmin') {
-    include_once __DIR__ . '/../../salesadmin/sidebar.php';
+    include_once ROOT_DIR_PATH . 'salesadmin/sidebar.php';
 } else {
     // Default or guest sidebar or no sidebar
-    // include_once __DIR__ . '/../../include/inc/sidebar.php';
+    // include_once ROOT_DIR_PATH . 'include/inc/sidebar.php';
 }
 
+
+
 try {
-    $database = new Database();
-    $conn = $database->getConnection();
+    // $database = new Database();
+    // $conn = $database->getConnection();
+
+    global $conn;
 
     $stmt = $conn->query("SELECT pi_id, pi_number, quotation_number, status, date_of_pi_raised FROM pi ORDER BY pi_id DESC");
     $pis = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -124,7 +128,7 @@ try {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-<script src="/php_erp/purewood/modules/quotation/assets/js/lock-quotation.js"></script>
+<script src="<?php echo BASE_URL; ?>modules/quotation/assets/js/lock-quotation.js"></script>
 
 <script>
 $(document).ready(function() {
@@ -144,7 +148,7 @@ $(document).ready(function() {
         $('#quotationDetailsModal').modal('show');
 
         $.ajax({
-            url: '/php_erp/purewood/modules/quotation/get_quotation_details.php',
+            url: '<?php echo BASE_URL; ?>modules/quotation/get_quotation_details.php',
             type: 'GET',
             data: { quotation_number: quotationNumber },
             dataType: 'html',
@@ -160,13 +164,13 @@ $(document).ready(function() {
     // Handle per-row Excel export button click
     $('#piTable').on('click', '.exportExcelBtn', function() {
         var piId = $(this).data('id');
-        window.location.href = '/php_erp/purewood/modules/pi/export_pi_excel.php?id=' + piId;
+        window.location.href = '<?php echo BASE_URL; ?>modules/pi/export_pi_excel.php?id=' + piId;
     });
 
     // Handle per-row PDF export button click
     $('#piTable').on('click', '.exportPdfBtn', function() {
         var piId = $(this).data('id');
-        window.location.href = '/php_erp/purewood/modules/pi/export_pi_pdf.php?id=' + piId;
+        window.location.href = '<?php echo BASE_URL; ?>modules/pi/export_pi_pdf.php?id=' + piId;
     });
 
     // Handle share button click
@@ -187,7 +191,7 @@ $(document).ready(function() {
         var message = 'Dear Customer,\n\nPlease find attached the Proforma Invoice.\n\nThank you,\nPurewood Team';
 
         $.ajax({
-            url: '/php_erp/purewood/modules/pi/send_pi_email.php',
+            url: '<?php echo BASE_URL; ?>modules/pi/send_pi_email.php',
             type: 'POST',
             data: {
                 pi_id: piId,
