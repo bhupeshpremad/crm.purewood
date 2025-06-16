@@ -26,7 +26,11 @@ if (!class_exists('AppConfig')) {
 
         public static function isLocalhost() {
             $host = $_SERVER['HTTP_HOST'] ?? '';
-            return in_array($host, ['localhost', '127.0.0.1']);
+            // Check if host contains 'localhost' or '127.0.0.1' to handle ports and subdomains
+            if (strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false) {
+                return true;
+            }
+            return false;
         }
 
         public static function getConfig() {
