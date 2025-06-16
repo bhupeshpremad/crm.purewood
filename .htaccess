@@ -1,7 +1,9 @@
 RewriteEngine On
 
-# Exclude assets folder from rewrite rules to prevent 404 errors
+# Exclude assets, vendor, and js folders from rewrite rules to prevent 404 errors
 RewriteCond %{REQUEST_URI} !^/assets/
+RewriteCond %{REQUEST_URI} !^/vendor/
+RewriteCond %{REQUEST_URI} !^/js/
 
 # Redirect root to index.php
 RewriteRule ^$ index.php [L]
@@ -37,3 +39,4 @@ RewriteRule ^login/?$ index.php [L]
 
 # Deny direct access to include folder for security
 RewriteRule ^include/ - [F,L]
+
