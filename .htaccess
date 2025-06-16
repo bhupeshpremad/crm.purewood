@@ -1,5 +1,8 @@
 RewriteEngine On
 
+# Exclude assets folder from rewrite rules to prevent 404 errors
+RewriteCond %{REQUEST_URI} !^/assets/
+
 # Redirect root to index.php
 RewriteRule ^$ index.php [L]
 
@@ -33,4 +36,4 @@ RewriteRule ^accounts/sidebar/?$ accounts/sidebar.php [L]
 RewriteRule ^login/?$ index.php [L]
 
 # Deny direct access to include folder for security
-RewriteRule ^include/ -
+RewriteRule ^include/ - [F,L]
