@@ -17,6 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $auth = new Auth();
 
+    // Debug BASE_URL
+    error_log('BASE_URL: ' . BASE_URL);
+
     if ($auth->login('superadmin', $email, $password)) {
         $_SESSION['user_type'] = 'superadmin';
         $_SESSION['user_email'] = $email;
