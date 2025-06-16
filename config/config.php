@@ -26,6 +26,10 @@ if (!class_exists('AppConfig')) {
 
         public static function isLocalhost() {
             $host = $_SERVER['HTTP_HOST'] ?? '';
+            // Explicitly check for live domain to avoid misdetection
+            if ($host === 'crm.purewood.in') {
+                return false;
+            }
             // Check if host contains 'localhost' or '127.0.0.1' to handle ports and subdomains
             if (strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false) {
                 return true;
