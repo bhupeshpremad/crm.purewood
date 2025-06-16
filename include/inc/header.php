@@ -33,7 +33,18 @@
     <!-- Toastr CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
 
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <!-- Use font-display: swap to avoid slow network font loading warning -->
+    <style>
+        @font-face {
+            font-family: 'Nunito';
+            font-style: normal;
+            font-weight: 400;
+            src: url('https://fonts.gstatic.com/s/nunito/v31/XRXV3I6Li01BKofINeaB.woff2') format('woff2');
+            font-display: swap;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i&display=swap" rel="stylesheet">
+    <!-- Use CDN for FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" crossorigin="anonymous" />
 
     <!-- Toastr JS -->
@@ -41,12 +52,11 @@
 
     <!-- Commented local JS and CSS vendor links -->
     <!--
-    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
-    <script src="vendor/jquery/jquery.min.js"></script>
-    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
-    <script src="js/sb-admin-2.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/jquery.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/bootstrap.bundle.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/jquery.easing.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/sb-admin-2.min.js"></script>
     -->
 
     <!-- Added CDN JS and CSS links -->
@@ -54,7 +64,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
     <!-- Removed multiple Chart.js imports causing errors -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
+    <!-- Replaced with single Chart.js CDN link without module import errors -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
 
     
