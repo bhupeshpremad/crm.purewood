@@ -20,8 +20,8 @@ if (!class_exists('AppConfig')) {
             'user' => 'u404997496_crn_purewood',
             'pass' => 'Purewood@2025#',
             'charset' => 'utf8mb4',
-            'base_url' => 'https://crm.purewood.in/php_erp/',
-            'subdirectory' => 'php_erp'
+            'base_url' => 'https://crm.purewood.in/',
+            'subdirectory' => ''
         ];
 
         public static function isLocalhost() {
