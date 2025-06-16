@@ -3,12 +3,21 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 header('Content-Type: application/json');
-include_once __DIR__ . '/../../config/config.php';
+include_once __DIR__ . '/../../config/config.php'; // Ensure this path is correct and it properly initializes $conn
 
-$database = new Database();
-$conn = $database->getConnection();
+/**
+ * @var PDO $conn
+ */
+global $conn; // Make sure $conn is truly global and accessible here
 
 $response = ['success' => false, 'message' => 'Unknown error occurred'];
+
+// Basic check to ensure $conn is a valid PDO object
+if (!$conn instanceof PDO) {
+    $response['message'] = 'Database connection not established. Check config.php.';
+    echo json_encode($response);
+    exit;
+}
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
@@ -17,9 +26,14 @@ if ($action === 'get_next_lead_number') {
         $currentYear = date('Y');
         $query = "SELECT lead_number FROM leads WHERE lead_number LIKE 'LEAD-$currentYear-%' ORDER BY id DESC LIMIT 1";
         $stmt = $conn->prepare($query);
+
+        if ($stmt === false) { // Check if prepare failed
+            throw new Exception('Failed to prepare statement for get_next_lead_number.');
+        }
+
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if ($result && isset($result['lead_number'])) {
             // Extract the numeric part and increment
             $parts = explode('-', $result['lead_number']);
@@ -29,10 +43,10 @@ if ($action === 'get_next_lead_number') {
             // If no lead number found for this year, start with 1
             $nextNumber = 1;
         }
-        
+
         // Format the new lead number
         $nextLeadNumber = sprintf("LEAD-%s-%04d", $currentYear, $nextNumber);
-        
+
         $response['success'] = true;
         $response['lead_number'] = $nextLeadNumber;
     } catch (Exception $e) {
@@ -45,6 +59,11 @@ if ($action === 'get_next_lead_number') {
         try {
             $query = "SELECT * FROM leads WHERE id = :lead_id";
             $stmt = $conn->prepare($query);
+
+            if ($stmt === false) { // Check if prepare failed
+                throw new Exception('Failed to prepare statement for get_lead.');
+            }
+
             $stmt->bindParam(':lead_id', $lead_id, PDO::PARAM_INT);
             $stmt->execute();
             $lead = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -66,9 +85,14 @@ if ($action === 'get_next_lead_number') {
         try {
             $query = "SELECT status_text, status_date, created_at FROM status WHERE lead_id = :lead_id ORDER BY status_date DESC";
             $stmt = $conn->prepare($query);
+
+            if ($stmt === false) { // Check if prepare failed
+                throw new Exception('Failed to prepare statement for get_status_history.');
+            }
+
             $stmt->bindParam(':lead_id', $lead_id, PDO::PARAM_INT);
             $stmt->execute();
-            $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC); // This will now be called on a PDOStatement object
             $response['success'] = true;
             $response['statuses'] = $statuses;
         } catch (Exception $e) {
@@ -94,6 +118,11 @@ if ($action === 'get_next_lead_number') {
         if ($action === 'create') {
             $query = "INSERT INTO leads (lead_number, entry_date, company_name, contact_name, contact_phone, contact_email, country, state, city, lead_source) VALUES (:lead_number, :entry_date, :company_name, :contact_person, :phone, :email, :country, :state, :city, :lead_source)";
             $stmt = $conn->prepare($query);
+
+            if ($stmt === false) { // Check if prepare failed
+                throw new Exception('Failed to prepare statement for create lead.');
+            }
+
             $stmt->bindParam(':lead_number', $lead_number);
             $stmt->bindParam(':entry_date', $entry_date);
             $stmt->bindParam(':company_name', $company_name);
@@ -113,6 +142,11 @@ if ($action === 'get_next_lead_number') {
         } elseif ($action === 'update' && $lead_id) {
             $query = "UPDATE leads SET lead_number = :lead_number, entry_date = :entry_date, company_name = :company_name, contact_name = :contact_person, contact_phone = :phone, contact_email = :email, country = :country, state = :state, city = :city, lead_source = :lead_source WHERE id = :lead_id";
             $stmt = $conn->prepare($query);
+
+            if ($stmt === false) { // Check if prepare failed
+                throw new Exception('Failed to prepare statement for update lead.');
+            }
+
             $stmt->bindParam(':lead_number', $lead_number);
             $stmt->bindParam(':entry_date', $entry_date);
             $stmt->bindParam(':company_name', $company_name);
@@ -144,6 +178,11 @@ if ($action === 'get_next_lead_number') {
         try {
             $query = "INSERT INTO status (lead_id, status_text, status_date) VALUES (:lead_id, :status_text, :status_date)";
             $stmt = $conn->prepare($query);
+
+            if ($stmt === false) { // Check if prepare failed
+                throw new Exception('Failed to prepare statement for add_status.');
+            }
+
             $stmt->bindParam(':lead_id', $lead_id, PDO::PARAM_INT);
             $stmt->bindParam(':status_text', $status_text);
             $stmt->bindParam(':status_date', $status_date);
@@ -166,6 +205,11 @@ if ($action === 'get_next_lead_number') {
         try {
             $query = "UPDATE leads SET status = :status WHERE id = :lead_id";
             $stmt = $conn->prepare($query);
+
+            if ($stmt === false) { // Check if prepare failed
+                throw new Exception('Failed to prepare statement for toggle_status.');
+            }
+
             $stmt->bindParam(':status', $status);
             $stmt->bindParam(':lead_id', $lead_id, PDO::PARAM_INT);
             if ($stmt->execute()) {
@@ -187,6 +231,11 @@ if ($action === 'get_next_lead_number') {
         try {
             $query = "UPDATE leads SET approve = :approve WHERE id = :lead_id";
             $stmt = $conn->prepare($query);
+
+            if ($stmt === false) { // Check if prepare failed
+                throw new Exception('Failed to prepare statement for toggle_approve.');
+            }
+
             $stmt->bindParam(':approve', $approve, PDO::PARAM_INT);
             $stmt->bindParam(':lead_id', $lead_id, PDO::PARAM_INT);
             if ($stmt->execute()) {

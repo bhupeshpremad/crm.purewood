@@ -1,18 +1,24 @@
 <?php
+
 include_once '../../config/config.php';
 
 header('Content-Type: application/json');
 
-$database = new Database();
-$pdo = $database->getConnection();
+global $conn;
 
 $response = ['success' => false, 'items' => []];
+
+if (!$conn instanceof PDO) {
+    $response['message'] = 'Database connection not established.';
+    echo json_encode($response);
+    exit;
+}
 
 if (isset($_GET['payment_id'])) {
     $payment_id = intval($_GET['payment_id']);
 
     try {
-        $stmt = $pdo->prepare("SELECT item_name, item_quantity, item_price, item_amount FROM payment_items WHERE payment_id = ?");
+        $stmt = $conn->prepare("SELECT item_name, item_quantity, item_price, item_amount FROM payment_items WHERE payment_id = ?");
         $stmt->execute([$payment_id]);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

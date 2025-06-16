@@ -11,56 +11,37 @@ if ($user_type === 'superadmin') {
     include_once __DIR__ . '/../../superadmin/sidebar.php';
 } elseif ($user_type === 'salesadmin') {
     include_once __DIR__ . '/../../salesadmin/sidebar.php';
-} else {
-    // Default or guest sidebar or no sidebar
-    // include_once __DIR__ . '/../../include/inc/sidebar.php';
 }
 
 try {
-    $database = new Database();
-    $conn = $database->getConnection();
-
+    global $conn;
     $stmt = $conn->query("SELECT id, lead_id, quotation_number, customer_name, customer_email, customer_phone, delivery_term, terms_of_delivery, approve, locked FROM quotations ORDER BY id DESC");
     $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $quotations = [];
-    $error = "Error fetching quotations: " . $e->getMessage();
-}
+    } catch (PDOException $e) {
+        $quotations = [];
+        $error = "Error fetching quotations: " . $e->getMessage();
+    }
 ?> 
 
-<!-- Content Wrapper -->
 <div id="content-wrapper" class="d-flex flex-column">
-
-    <!-- Main Content -->
     <div id="content">
-
-        <!-- Topbar -->
         <?php include_once ROOT_DIR_PATH . 'include/inc/topbar.php'; ?>
-        <!-- End of Topbar -->
-
-        <!-- Begin Page Content -->
         <div class="container-fluid">
-
-            <!-- Page Heading -->
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
                 <h1 class="h3 mb-0 text-gray-800">Quotations</h1>
             </div>
-
             <?php if (!empty($error)) : ?>
                 <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
             <?php endif; ?>
-
             <div class="table-responsive">
                 <table id="quotationsTable" class="table table-bordered table-striped">
                     <thead>
                         <tr>
                             <th class="bg-gradient-primary text-white text-center">Sr NO</th>
                             <th class="bg-gradient-primary text-white text-center">Quotation Number</th>
-                            <!-- Removed Quotation Date column -->
                             <th class="bg-gradient-primary text-white text-center">Customer Name</th>
                             <th class="bg-gradient-primary text-white text-center">Customer Email</th>
                             <th class="bg-gradient-primary text-white text-center">Status</th>
-                            <!-- Removed Lock Status column -->
                             <th class="bg-gradient-primary text-white text-center">Export</th>
                             <th class="bg-gradient-primary text-white text-center">Actions</th>
                         </tr>
@@ -71,7 +52,6 @@ try {
                             <tr class="text-center">
                                 <td><?php echo $sr_no++; ?></td>
                                 <td><?php echo htmlspecialchars($quotation['quotation_number']); ?></td>
-                                <!-- Removed Quotation Date data cell -->
                                 <td><?php echo htmlspecialchars($quotation['customer_name']); ?></td>
                                 <td><?php echo htmlspecialchars($quotation['customer_email']); ?></td>
                                 <td>
@@ -82,11 +62,9 @@ try {
                                     <button type="button" class="btn btn-info btn-sm export-btn shareQuotationBtn mr-2" data-toggle="modal" data-target="#shareQuotationModal_<?php echo $quotation['id']; ?>" title="Share">
                                         <i class="fas fa-share-alt"></i>
                                     </button>
-                                        
                                         <button type="button" class="btn btn-success btn-sm export-btn exportExcelBtn mr-2" data-id="<?php echo $quotation['id']; ?>" title="Export to Excel">
                                             <i class="fas fa-file-excel"></i>
                                         </button>
-                                        
                                         <button type="button" class="btn btn-danger btn-sm export-btn exportPdfBtn" data-id="<?php echo $quotation['id']; ?>" title="Export to PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </button>
@@ -102,14 +80,11 @@ try {
                                     <button class="btn btn-secondary bg-dark" title="Lock Open" style="padding: 0.375rem; margin-left: 5px;" <?php echo ($quotation['approve'] == 1 && $quotation['locked'] == 0) ? '' : 'disabled style="pointer-events:none; opacity:0.6;"'; ?> data-toggle="modal" data-target="#lockQuotationModal_<?php echo $quotation['id']; ?>"><i class="<?php echo ($quotation['locked'] == 1) ? 'fas fa-lock' : 'fas fa-lock-open'; ?>"></i></button>
                                     </button>
                                 </td>
-                                <!-- Removed Lock Status data cell -->
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
-
-            <!-- Lock Quotation Modal -->
             <?php foreach ($quotations as $quotation) : ?>
             <div class="modal fade" id="lockQuotationModal_<?php echo $quotation['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="lockQuotationModalLabel_<?php echo $quotation['id']; ?>">
                 <div class="modal-dialog" role="document">
@@ -131,31 +106,20 @@ try {
                 </div>
             </div>
             <?php endforeach; ?>
-
         </div>
-        <!-- /.container-fluid -->
-
     </div>
-    <!-- End of Main Content -->
-
     <?php include_once ROOT_DIR_PATH . 'include/inc/footer-top.php'; ?>
 </div>
-<!-- End of Content Wrapper -->
-
-
 <?php include_once ROOT_DIR_PATH . 'include/inc/footer.php'; ?>
 
-<!-- DataTables CSS and JS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css"/>
 <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.dataTables.min.css"/>
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 <script src="<?php echo BASE_URL; ?>modules/quotation/assets/js/lock-quotation.js"></script>
@@ -174,7 +138,6 @@ $(document).ready(function() {
 
     var currentQuotationId = null;
 
-    // Handle View Status button click
     $('#quotationsTable').on('click', '.viewStatusBtn', function() {
         currentQuotationId = $(this).data('quotation-id');
         $('#statusDate').val('');
@@ -182,7 +145,7 @@ $(document).ready(function() {
         $('#statusHistoryTable tbody').empty();
 
         $.ajax({
-            url: 'ajax_get_quotation_status.php',
+            url: '<?php echo BASE_URL; ?>modules/quotation/ajax_get_quotation_status.php',
             type: 'GET',
             data: { quotation_id: currentQuotationId },
             dataType: 'json',
@@ -207,7 +170,6 @@ $(document).ready(function() {
         $('#viewStatusModal').modal('show');
     });
 
-    // Handle Add Status button click
     $('#addStatusBtn').click(function() {
         var date = $('#statusDate').val();
         var status = $('#statusText').val();
@@ -220,7 +182,7 @@ $(document).ready(function() {
             return;
         }
         $.ajax({
-            url: 'ajax_update_quotation_status.php',
+            url: '<?php echo BASE_URL; ?>modules/quotation/ajax_update_quotation_status.php',
             type: 'POST',
             data: {
                 quotation_id: currentQuotationId,
@@ -245,14 +207,11 @@ $(document).ready(function() {
         });
     });
 
-    // Handle Edit button click
     $('#quotationsTable').on('click', '.editQuotationBtn', function() {
         var quotationId = $(this).data('quotation-id');
-        // Redirect to edit page or open modal for editing
         window.location.href = 'add.php?id=' + quotationId;
     });
 
-    // Handle Active button click to update approve status
     $('#quotationsTable').on('click', '.activeStatusBtn', function() {
         var button = $(this);
         var quotationId = button.data('quotation-id');
@@ -282,13 +241,11 @@ $(document).ready(function() {
         });
     });
 
-    // Handle per-row Excel export button click
     $('#quotationsTable').on('click', '.exportExcelBtn', function() {
         var quotationId = $(this).data('id');
         window.location.href = '<?php echo BASE_URL; ?>modules/quotation/export_quotation_excel.php?id=' + quotationId;
     });
 
-    // Handle per-row PDF export button click
     $('#quotationsTable').on('click', '.exportPdfBtn', function() {
         var quotationId = $(this).data('id');
         window.location.href = '<?php echo BASE_URL; ?>modules/quotation/export_quotation_pdf.php?id=' + quotationId;
@@ -296,7 +253,6 @@ $(document).ready(function() {
 });
 </script>
 
-<!-- View Status Modal -->
 <div class="modal fade" id="viewStatusModal" tabindex="-1" role="dialog" aria-labelledby="viewStatusModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document" style="max-width: 900px;">
     <div class="modal-content">
@@ -325,7 +281,6 @@ $(document).ready(function() {
             </tr>
           </thead>
           <tbody>
-            <!-- Status history rows will be dynamically added here -->
           </tbody>
         </table>
       </div>
@@ -358,7 +313,6 @@ $(document).ready(function() {
 </div>
 <?php endforeach; ?>
 
-<!-- Toast Notification -->
 <div aria-live="polite" aria-atomic="true" style="position: fixed; top: 1rem; right: 1rem; min-height: 200px; z-index: 1080;">
     <div id="toastContainer" style="position: absolute; top: 0; right: 0;"></div>
 </div>
@@ -385,30 +339,23 @@ function showToast(message, isSuccess = true) {
 }
 
 $(document).ready(function() {
-    // Open confirmation modal on share button click
     $('.shareQuotationBtn').on('click', function() {
         var quotationId = $(this).data('target').split('_').pop();
         $('#confirmSendEmailModal_' + quotationId).modal('show');
     });
 
-    // Handle Yes button click in confirmation modal
     $('.confirmSendEmailBtn').on('click', function() {
         var quotationId = $(this).data('quotation-id');
-
-        // Disable button to prevent multiple clicks
         var button = $(this);
         button.prop('disabled', true).text('Sending...');
-
-        // Prepare data for email sending
         var recipientEmail = $('#quotationsTable').find('tr').filter(function() {
             return $(this).find('.shareQuotationBtn').data('target') === '#shareQuotationModal_' + quotationId;
         }).find('td:nth-child(5)').text().trim();
-
         var subject = 'Quotation - ' + quotationId;
         var message = 'Dear Customer,\n\nPlease find attached the quotation.\n\nThank you,\nPurewood Team';
 
         $.ajax({
-            url: '/php_erp/purewood/modules/quotation/send_quotation_email.php',
+            url: '<?php echo BASE_URL; ?>modules/quotation/send_quotation_email.php',
             type: 'POST',
             data: {
                 quotation_id: quotationId,

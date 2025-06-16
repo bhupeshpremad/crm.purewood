@@ -16,8 +16,11 @@ if (empty($_GET['quotation_id'])) {
 $quotationId = intval($_GET['quotation_id']);
 
 try {
-    $database = new Database();
-    $conn = $database->getConnection();
+    // $database = new Database();
+    // $conn = $database->getConnection();
+
+    global $conn;
+
 
     // Check if PI record exists for this quotation_id
     $checkStmt = $conn->prepare("SELECT pi_number FROM pi WHERE quotation_id = ?");

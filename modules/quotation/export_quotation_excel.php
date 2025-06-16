@@ -23,14 +23,18 @@ $quotationId = intval($_GET['id']);
 
 try {
     // Initialize database connection using Database class from config.php
-    $database = new Database();
-    $conn = $database->getConnection();
+    // $database = new Database();
+    // $conn = $database->getConnection();
+
+    /** @var PDO $conn */
+    global $conn;
 
     if (!$conn) {
         throw new Exception('Database connection not initialized.');
     }
 
     // Fetch quotation data
+    /** @var PDOStatement $stmt */
     $stmt = $conn->prepare("SELECT * FROM quotations WHERE id = ?");
     $stmt->execute([$quotationId]);
     $quotation = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -40,6 +44,7 @@ try {
     }
 
     // Fetch products for this quotation
+    /** @var PDOStatement $stmt2 */
     $stmt2 = $conn->prepare("SELECT * FROM quotation_products WHERE quotation_id = ?");
     $stmt2->execute([$quotationId]);
     $products = $stmt2->fetchAll(PDO::FETCH_ASSOC);

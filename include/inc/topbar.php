@@ -1,4 +1,4 @@
-<!-- Topbar -->
+
 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
 
     <!-- Sidebar Toggle (Topbar) -->
@@ -106,12 +106,17 @@
                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <span class="mr-2 d-none d-lg-inline text-gray-600 small">
                     <?php
-                    // Remove session_start() from here to avoid headers sent warning
-                    // Instead, display admin type based on session variables
-                    if (isset($_SESSION['superadmin'])) {
-                        echo 'Super Admin Dashboard - ' . htmlspecialchars($_SESSION['superadmin']);
-                    } elseif (isset($_SESSION['salesadmin'])) {
-                        echo 'Sales Admin Dashboard - ' . htmlspecialchars($_SESSION['salesadmin']);
+                    // Display admin type based on session variables
+                    if (isset($_SESSION['user_type']) && isset($_SESSION['user_email'])) {
+                        if ($_SESSION['user_type'] === 'superadmin') {
+                            echo 'Super Admin Dashboard - ' . htmlspecialchars($_SESSION['user_email']);
+                        } elseif ($_SESSION['user_type'] === 'salesadmin') {
+                            echo 'Sales Admin Dashboard - ' . htmlspecialchars($_SESSION['user_email']);
+                        } elseif ($_SESSION['user_type'] === 'accounts') {
+                            echo 'Accounts Dashboard - ' . htmlspecialchars($_SESSION['user_email']);
+                        } else {
+                            echo 'Dashboard';
+                        }
                     } else {
                         echo 'Dashboard';
                     }

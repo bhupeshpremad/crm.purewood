@@ -1,8 +1,7 @@
 <?php
 include_once __DIR__ . '/../../config/config.php';
 
-$database = new Database();
-$conn = $database->getConnection();
+global $conn;
 
 try {
     $currentYear = date('Y');

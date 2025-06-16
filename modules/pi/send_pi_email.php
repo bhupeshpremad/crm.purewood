@@ -21,8 +21,11 @@ if (!$piId) {
 }
 
 try {
-    $database = new Database();
-    $conn = $database->getConnection();
+    // $database = new Database();
+    // $conn = $database->getConnection();
+
+    global $conn;
+
 
     // Fetch PI details and customer email
     $stmt = $conn->prepare("SELECT pi_number, quotation_number FROM pi WHERE pi_id = ?");

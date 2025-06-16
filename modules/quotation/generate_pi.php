@@ -24,10 +24,13 @@ $sampleApprovalDate = isset($_POST['sample_approval_date']) ? trim($_POST['sampl
 $discount = isset($_POST['discount']) ? floatval($_POST['discount']) : 0.0;
 
 try {
-    $database = new Database();
-    $conn = $database->getConnection();
+    // $database = new Database();
+    // $conn = $database->getConnection();
 
-    $conn->beginTransaction();
+
+    // $conn->beginTransaction();
+
+    global $conn;
 
     // Check if PI record exists for this quotation_id
     $checkStmt = $conn->prepare("SELECT pi_id, pi_number FROM pi WHERE quotation_id = ?");

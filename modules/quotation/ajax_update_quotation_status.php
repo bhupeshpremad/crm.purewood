@@ -15,8 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        $database = new Database();
-        $conn = $database->getConnection();
+        global $conn;
 
         if ($approve !== null) {
             // Update approve column in quotations table

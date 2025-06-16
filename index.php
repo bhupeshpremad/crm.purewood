@@ -10,6 +10,7 @@ $error = '';
 # echo "<script>alert('BASE_URL: " . BASE_URL . "');</script>";
 # exit;
 
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
@@ -25,6 +26,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['user_type'] = 'salesadmin';
         $_SESSION['user_email'] = $email;
         header('Location: ' . BASE_URL . 'salesadmin/salesadmin_dashboard.php');
+        exit();
+    } elseif ($auth->login('accounts', $email, $password)) {
+        $_SESSION['user_type'] = 'accounts';
+        $_SESSION['user_email'] = $email;
+        header('Location: ' . BASE_URL . 'accountsadmin/accounts_dashboard.php');
         exit();
     } else {
         $error = 'Invalid email or password.';
@@ -152,6 +158,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 </body>
 
-</html>
-
 <?php include './include/inc/footer.php'; ?>
+</html>

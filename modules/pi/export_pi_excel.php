@@ -14,8 +14,11 @@ if (!isset($_GET['id'])) {
 $piId = intval($_GET['id']);
 
 try {
-    $database = new Database();
-    $conn = $database->getConnection();
+    // $database = new Database();
+    // $conn = $database->getConnection();
+
+    global $conn;
+
 
     // Fetch PI data
     $stmt = $conn->prepare("SELECT * FROM pi WHERE pi_id = ?");
