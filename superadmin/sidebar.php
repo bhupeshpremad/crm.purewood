@@ -87,7 +87,8 @@
         </a>
         <div id="collapseAccounts" class="collapse" aria-labelledby="headingAccounts" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
-                <a class="collapse-item" href="#">Add Job Card</a>
+                <a class="collapse-item" href="<?php echo BASE_URL; ?>modules/purchase/add.php">Add Purchase</a>
+                <a class="collapse-item" href="<?php echo BASE_URL; ?>modules/purchase/index.php">View Purchase</a>
             </div>
         </div>
     </li>

@@ -20,37 +20,37 @@ $purchase_view = '';
 $make_Payment_add = '';
 $make_Payment_view = '';
 
-if ($user_type === 'superadmin') {
-    $base_path = 'superadmin';
-    $dashboard_link = BASE_URL . $base_path . '/superadmin_dashboard.php';
-    $lead_add = BASE_URL . $base_path . '/sales/lead/add.php';
-    $lead_view = BASE_URL . $base_path . '/sales/lead/index.php';
-    $quotation_add = BASE_URL . $base_path . '/sales/quotation/add.php';
-    $quotation_view = BASE_URL . $base_path . '/sales/quotation/index.php';
-    $customer_view = BASE_URL . $base_path . '/sales/customer/index.php';
-    $pi_add = BASE_URL . $base_path . '/sales/pi/add.php';
-    $pi_view = BASE_URL . $base_path . '/sales/pi/index.php';
-    $purchase_add = BASE_URL . $base_path . '/accounts/purchase/add.php';
-    $purchase_view = BASE_URL . $base_path . '/accounts/purchase/index.php';
-    $make_Payment_add = BASE_URL . $base_path . '/accounts/make_Payment/add.php';
-    $make_Payment_view = BASE_URL . $base_path . '/accounts/make_Payment/index.php';
-} elseif ($user_type === 'salesadmin') {
-    $base_path = 'salesadmin';
-    $dashboard_link = BASE_URL . $base_path . '/salesadmin_dashboard.php';
-    $lead_add = BASE_URL . $base_path . '/sales/lead/add.php';
-    $lead_view = BASE_URL . $base_path . '/sales/lead/index.php';
-    $quotation_add = BASE_URL . $base_path . '/sales/quotation/add.php';
-    $quotation_view = BASE_URL . $base_path . '/sales/quotation/index.php';
-    $customer_view = BASE_URL . $base_path . '/sales/customer/index.php';
-    $pi_add = BASE_URL . $base_path . '/sales/pi/add.php';
-    $pi_view = BASE_URL . $base_path . '/sales/pi/index.php';
-} elseif ($user_type === 'accounts') {
-    $base_path = 'accountsadmin';
-    $dashboard_link = BASE_URL . $base_path . '/accounts_dashboard.php';
-    $purchase_add = BASE_URL . $base_path . '/purchase/add.php';
-    $purchase_view = BASE_URL . $base_path . '/purchase/index.php';
-    $make_Payment_add = BASE_URL . $base_path . '/payment/add.php';
-    $make_Payment_view = BASE_URL . $base_path . '/payment/index.php';
+    if ($user_type === 'superadmin') {
+        $base_path = 'superadmin';
+        $dashboard_link = BASE_URL . $base_path . '/superadmin_dashboard.php';
+        $lead_add = BASE_URL . $base_path . '/sales/lead/add.php';
+        $lead_view = BASE_URL . $base_path . '/sales/lead/index.php';
+        $quotation_add = BASE_URL . $base_path . '/sales/quotation/add.php';
+        $quotation_view = BASE_URL . $base_path . '/sales/quotation/index.php';
+        $customer_view = BASE_URL . $base_path . '/sales/customer/index.php';
+        $pi_add = BASE_URL . $base_path . '/sales/pi/add.php';
+        $pi_view = BASE_URL . $base_path . '/sales/pi/index.php';
+        $purchase_add = BASE_URL . $base_path . '/accounts/purchase/add.php';
+        $purchase_view = BASE_URL . $base_path . '/accounts/purchase/index.php';
+        $make_Payment_add = BASE_URL . $base_path . '/accounts/make_Payment/add.php';
+        $make_Payment_view = BASE_URL . $base_path . '/accounts/make_Payment/index.php';
+    } elseif ($user_type === 'salesadmin') {
+        $base_path = 'salesadmin';
+        $dashboard_link = BASE_URL . $base_path . '/salesadmin_dashboard.php';
+        $lead_add = BASE_URL . $base_path . '/sales/lead/add.php';
+        $lead_view = BASE_URL . $base_path . '/sales/lead/index.php';
+        $quotation_add = BASE_URL . $base_path . '/sales/quotation/add.php';
+        $quotation_view = BASE_URL . $base_path . '/sales/quotation/index.php';
+        $customer_view = BASE_URL . $base_path . '/sales/customer/index.php';
+        $pi_add = BASE_URL . $base_path . '/sales/pi/add.php';
+        $pi_view = BASE_URL . $base_path . '/sales/pi/index.php';
+    } elseif ($user_type === 'accounts') {
+        $base_path = 'accountsadmin';
+        $dashboard_link = BASE_URL . $base_path . '/accounts_dashboard.php';
+        $purchase_add = BASE_URL . $base_path . '/purchase/add.php';
+        $purchase_view = BASE_URL . $base_path . '/purchase/index.php';
+        $make_Payment_add = BASE_URL . $base_path . '/payment/add.php';
+        $make_Payment_view = BASE_URL . $base_path . '/payment/index.php';
 } else {
     $dashboard_link = BASE_URL;
     $lead_add = '#';
@@ -161,6 +161,18 @@ if ($user_type === 'superadmin') {
                 <div class="bg-white py-2 collapse-inner rounded">
                     <a class="collapse-item" href="<?php echo $purchase_add; ?>">Add Purchase</a>
                     <a class="collapse-item" href="<?php echo $purchase_view; ?>">View Purchase</a>
+                </div>
+            </div>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePurchaseSuperadmin" aria-expanded="true" aria-controls="collapsePurchaseSuperadmin">
+                <i class="fas fa-fw fa-bullhorn"></i> <span>Purchase (Superadmin)</span>
+            </a>
+            <div id="collapsePurchaseSuperadmin" class="collapse" aria-labelledby="headingPurchaseSuperadmin" data-parent="#accordionSidebar">
+                <div class="bg-white py-2 collapse-inner rounded">
+                    <a class="collapse-item" href="<?php echo BASE_URL; ?>modules/purchase/add.php">Add Purchase</a>
+                    <a class="collapse-item" href="<?php echo BASE_URL; ?>modules/purchase/index.php">View Purchase</a>
                 </div>
             </div>
         </li>

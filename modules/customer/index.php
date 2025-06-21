@@ -60,99 +60,102 @@ try {
 }
 ?>
 
-<div id="content-wrapper" class="d-flex flex-column">
+<div class="container-fluid">
     <div id="content">
         <?php include_once ROOT_DIR_PATH . 'include/inc/topbar.php'; ?>
 
-        <div class="container-fluid">
-            <h1 class="h3 mb-4 text-gray-800">Customers with Details</h1>
+        <?php if (!empty($error)) : ?>
+            <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+        <?php endif; ?>
 
-            <?php if (!empty($error)) : ?>
-                <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
-            <?php endif; ?>
-
-            <div class="table-responsive">
-                <table id="customersTable" class="table table-bordered table-striped">
-                    <thead class="bg-gradient-primary text-white">
-                        <tr>
-                            <th>Sl Number</th>
-                            <th>Customer Name</th>
-                            <th>Customer Email</th>
-                            <th>Customer Phone</th>
-                            <th>Total Leads</th>
-                            <th>Total Quotations</th>
-                            <th>Total PIs</th>
-                            <th>Create Quotation</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php $sr_no = 1; ?>
-                        <?php foreach ($customers as $customer) : ?>
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Customers List</h6>
+                <input type="text" id="customerSearchInput" class="form-control form-control-sm w-25" placeholder="Search Customers...">
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="customersTable" class="table table-bordered table-striped">
+                        <thead>
                             <tr>
-                                <td><?php echo $sr_no++; ?></td>
-                                <td><?php echo htmlspecialchars($customer['company_name']); ?></td>
-                                <td><?php echo htmlspecialchars($customer['contact_email']); ?></td>
-                                <td><?php echo htmlspecialchars($customer['contact_phone']); ?></td>
-                                <td><a href="#" class="view-leads" data-lead-id="<?php echo $customer['lead_id']; ?>"><?php echo $customer['total_leads']; ?></a></td>
-                                <td><a href="#" class="view-quotations" data-lead-id="<?php echo $customer['lead_id']; ?>"><?php echo $customer['total_quotations']; ?></a></td>
-                                <td><a href="#" class="view-pis" data-lead-id="<?php echo $customer['lead_id']; ?>"><?php echo $customer['total_pis']; ?></a></td>
-                                <td><a href="../quotation/add.php?lead_id=<?php echo $customer['lead_id']; ?>" class="btn btn-primary btn-sm">Create Quotation</a></td>
+                                <th>Sl Number</th>
+                                <th>Customer Name</th>
+                                <th>Customer Email</th>
+                                <th>Customer Phone</th>
+                                <th>Total Leads</th>
+                                <th>Total Quotations</th>
+                                <th>Total PIs</th>
+                                <th>Create Quotation</th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Modals for leads, quotations, and PIs -->
-            <div class="modal fade" id="leadsModal" tabindex="-1" role="dialog" aria-labelledby="leadsModalLabel" aria-hidden="true">
-              <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title" id="leadsModalLabel">Leads List</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
-                  </div>
-                  <div class="modal-body" id="leadsModalBody">
-                    <!-- Leads list will be loaded here -->
-                  </div>
+                        </thead>
+                        <tbody>
+                            <?php $sr_no = 1; ?>
+                            <?php foreach ($customers as $customer) : ?>
+                                <tr>
+                                    <td><?php echo $sr_no++; ?></td>
+                                    <td><?php echo htmlspecialchars($customer['company_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($customer['contact_email']); ?></td>
+                                    <td><?php echo htmlspecialchars($customer['contact_phone']); ?></td>
+                                    <td><a href="#" class="view-leads" data-lead-id="<?php echo $customer['lead_id']; ?>"><?php echo $customer['total_leads']; ?></a></td>
+                                    <td><a href="#" class="view-quotations" data-lead-id="<?php echo $customer['lead_id']; ?>"><?php echo $customer['total_quotations']; ?></a></td>
+                                    <td><a href="#" class="view-pis" data-lead-id="<?php echo $customer['lead_id']; ?>"><?php echo $customer['total_pis']; ?></a></td>
+                                    <td><a href="../quotation/add.php?lead_id=<?php echo $customer['lead_id']; ?>" class="btn btn-primary btn-sm">Create Quotation</a></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
-              </div>
             </div>
-
-            <div class="modal fade" id="quotationsModal" tabindex="-1" role="dialog" aria-labelledby="quotationsModalLabel" aria-hidden="true">
-              <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title" id="quotationsModalLabel">Quotations List</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
-                  </div>
-                  <div class="modal-body" id="quotationsModalBody">
-                    <!-- Quotations list will be loaded here -->
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="modal fade" id="pisModal" tabindex="-1" role="dialog" aria-labelledby="pisModalLabel" aria-hidden="true">
-              <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title" id="pisModalLabel">PIs List</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
-                  </div>
-                  <div class="modal-body" id="pisModalBody">
-                    <!-- PIs list will be loaded here -->
-                  </div>
-                </div>
-              </div>
-            </div>
-
         </div>
+
+        <div class="modal fade" id="leadsModal" tabindex="-1" role="dialog" aria-labelledby="leadsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title" id="leadsModalLabel">Leads List</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>
+                <div class="modal-body" id="leadsModalBody">
+                <!-- Leads list will be loaded here -->
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="quotationsModal" tabindex="-1" role="dialog" aria-labelledby="quotationsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title" id="quotationsModalLabel">Quotations List</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>
+                <div class="modal-body" id="quotationsModalBody">
+                <!-- Quotations list will be loaded here -->
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="pisModal" tabindex="-1" role="dialog" aria-labelledby="pisModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title" id="pisModalLabel">PIs List</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>
+                <div class="modal-body" id="pisModalBody">
+                <!-- PIs list will be loaded here -->
+                </div>
+            </div>
+            </div>
+        </div>
+        
     </div>
 </div>
 
@@ -167,7 +170,9 @@ try {
 $(document).ready(function() {
     $('#customersTable').DataTable({
         order: [[1, 'asc']],
-        pageLength: 10
+        pageLength: 10,
+        lengthChange: false,
+        searching: false
     });
 
     // Load leads list in modal

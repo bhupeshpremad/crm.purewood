@@ -47,11 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="card o-hidden border-0 shadow-lg my-5">
                     <div class="card-body p-0">
                         <!-- Nested Row within Card Body -->
-                        <div class="row">
-                            <div class="col-lg-6 d-none d-lg-block bg-login-image">
-                                <?php 
-                                // echo 'BASE_URL: ' . BASE_URL;
-                                ?>
+                        <div class="row align-items-center">
+                            <div class="col-lg-6 d-none d-lg-block bg-login-image text-center">
+                               <img src="./assets/images/Purewood-Joey Logo.png" alt="" class="img-fluid" style="width: 70%; height: auto;">
                             </div>
                             <div class="col-lg-6">
                                 <div class="p-5">

@@ -1,8 +1,11 @@
 <?php
 error_reporting(0);
 include_once '../../config/config.php';
-include_once '../../include/inc/header.php';
-include_once '../../sidebar.php';
+if (!defined('ROOT_DIR_PATH')) {
+    define('ROOT_DIR_PATH', __DIR__ . '/../../' . DIRECTORY_SEPARATOR);
+}
+include_once ROOT_DIR_PATH . 'include/inc/header.php';
+session_start();
 
 $user_type = $_SESSION['user_type'] ?? 'guest';
 
@@ -12,47 +15,12 @@ if ($user_type === 'superadmin') {
     include_once ROOT_DIR_PATH . 'salesadmin/sidebar.php';
 } elseif ($user_type === 'accounts') {
     include_once ROOT_DIR_PATH . 'accountsadmin/sidebar.php';
-} else {
 }
-
 ?>
-<style>
-    .table th, .table td { vertical-align: middle; padding: 0.5rem; }
-    .table input.form-control, .table select.form-control { border: 1px solid #ced4da; padding: 0.375rem 0.75rem; height: auto; }
 
-    .supplier-item-table th, .supplier-item-table td { padding: 0.3rem; }
-    .supplier-item-table input.form-control { padding: 0.25rem 0.5rem; }
-
-    .add-row-btn, .remove-row-btn { font-size: 0.9rem; padding: 0.3rem 0.6rem; line-height: 1; }
-    .fas { font-family: 'Font Awesome 5 Free'; font-weight: 900; }
-
-    .margin-success { color: green; font-weight: bold; }
-    .margin-warning { color: orange; font-weight: bold; }
-    .margin-danger { color: red; font-weight: bold; }
-    .validation-message { color: red; font-weight: bold; margin-top: 5px; }
-    
-    fieldset {
-        border: 1px solid #ddd;
-        padding: 15px;
-        margin-bottom: 20px;
-        border-radius: 5px;
-    }
-    fieldset legend {
-        width: auto;
-        padding: 0 10px;
-        border-bottom: none;
-        font-size: 1.1em;
-        font-weight: bold;
-        color: #0056b3;
-    }
-    .alert-primary {
-        background-color: #e0f2f7;
-        border-color: #bee5eb;
-        color: #0c5460;
-    }
-</style>
 <div class="container-fluid">
-    <?php include_once '../../../include/inc/topbar.php'; ?>
+    <?php include_once ROOT_DIR_PATH . 'include/inc/topbar.php'; ?>
+
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
             <h6 class="m-0 font-weight-bold text-primary" id="formTitle">Add Payment Details</h6>
@@ -61,70 +29,66 @@ if ($user_type === 'superadmin') {
             <form id="vendorPayment_form" autocomplete="off">
                 <input type="hidden" name="payment_id" id="payment_id" value="">
                 <input type="hidden" name="lead_id" id="lead_id" value="">
-                
-                <fieldset class="mb-2">
-                    <legend>PO Information</legend>
-                    <div class="row mb-3">
-                        <div class="col-md-3">
-                            <label for="pon_number" class="form-label">Purchase Order Number (PON)</label>
-                            <input type="text" class="form-control" id="pon_number" name="pon_number">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="po_amt" class="form-label">Purchase Order Amount (PO AMT)</label>
-                            <input type="number" class="form-control" id="po_amt" name="po_amt" required>
-                            <div id="po_amt_validation_msg" class="validation-message"></div>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="son_number" class="form-label">Sale Order Number(SON)</label>
-                            <input type="text" class="form-control" id="son_number" name="son_number" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="soa_number" class="form-label">Sale Order Amount(SOA)</label>
-                            <input type="number" class="form-control" id="soa_number" name="soa_number" required>
-                        </div>
+
+                <!-- PO Information -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label for="pon_number" class="form-label">Purchase Order Number (PON)</label>
+                        <input type="text" class="form-control" id="pon_number" name="pon_number">
                     </div>
-                </fieldset>
-                
-                <fieldset class="mb-2">
-                    <legend>Job Card Details</legend>
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <table class="table table-bordered" id="job_card_details_table">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 35%;">Job Card No.</th>
-                                        <th style="width: 35%;">JC Amount</th>
-                                        <th style="width: 10%; text-align: center;">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <th class="text-end">Total Job Card Amount:</th>
-                                        <th><input type="text" class="form-control" id="total_jc_amount" name="total_jc_amount" readonly></th>
-                                        <th class="text-center">
-                                            <button type="button" class="btn btn-success add-row-btn add-jobcard-row"><i class="fas fa-plus"></i></button>
-                                        </th>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
+                    <div class="col-md-3">
+                        <label for="po_amt" class="form-label">Purchase Order Amount (PO AMT)</label>
+                        <input type="number" class="form-control" id="po_amt" name="po_amt" required>
+                        <div id="po_amt_validation_msg" class="validation-message"></div>
                     </div>
-                </fieldset>
-                
-                <fieldset class="mb-2">
-                    <legend>Supplier Information</legend>
-                    <div id="suppliers_container">
+                    <div class="col-md-3">
+                        <label for="son_number" class="form-label">Sale Order Number (SON)</label>
+                        <input type="text" class="form-control" id="son_number" name="son_number" required>
                     </div>
-                    <div class="row mt-3">
+                    <div class="col-md-3">
+                        <label for="soa_number" class="form-label">Sale Order Amount (SOA)</label>
+                        <input type="number" class="form-control" id="soa_number" name="soa_number" required>
+                    </div>
+                </div>
+
+                <!-- Job Card Details -->
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Job Card Details</label>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm" id="job_card_details_table">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th style="width: 35%;">Job Card No.</th>
+                                    <th style="width: 35%;">JC Amount</th>
+                                    <th style="width: 10%; text-align: center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                            <tfoot>
+                                <tr>
+                                    <th class="text-end">Total Job Card Amount:</th>
+                                    <th><input type="text" class="form-control" id="total_jc_amount" name="total_jc_amount" readonly></th>
+                                    <th class="text-center">
+                                        <button type="button" class="btn btn-success btn-sm add-jobcard-row"><i class="fas fa-plus"></i></button>
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Supplier Information -->
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Supplier Information</label>
+                    <div id="suppliers_container"></div>
+                    <div class="row mt-2">
                         <div class="col-md-12 text-center">
-                            <button type="button" class="btn btn-primary add-row-btn add-supplier-row"><i class="fas fa-plus"></i> Add Supplier</button>
+                            <button type="button" class="btn btn-primary btn-sm add-supplier-row"><i class="fas fa-plus"></i> Add Supplier</button>
                         </div>
                     </div>
-                    <div class="row mt-3">
+                    <div class="row mt-2">
                         <div class="col-md-12">
-                            <table class="table table-bordered">
+                            <table class="table table-bordered table-sm">
                                 <tfoot>
                                     <tr>
                                         <th class="text-end">Grand Total Items Amount:</th>
@@ -135,74 +99,95 @@ if ($user_type === 'superadmin') {
                             </table>
                         </div>
                     </div>
-                </fieldset>
-                
-                <fieldset class="mb-2">
-                    <legend>Payment Mode Information</legend>
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <table class="table table-bordered" id="payment_details_table">
-                                <thead>
-                                    <tr>
-                                <th style="width: 15%;">Payment Category</th>
-                                <th style="width: 15%;">Payment Type</th>
-                                <th style="width: 20%;">Cheque/RTGS Number</th>
-                                <th style="width: 15%;">PD ACC Number</th>
-                                <th style="width: 10%;">Full/Partial</th>
-                                <th style="width: 10%;">Amount</th>
-                                <th style="width: 10%;">Invoice Date</th>
-                                <th style="width: 5%; text-align: center;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <th colspan="4" class="text-end">Total Payment Amount:</th>
-                                <th>
-                                    <input type="text" class="form-control d-inline-block w-auto" id="total_ptm_amount" name="total_ptm_amount" readonly>
-                                </th>
-                                <th colspan="2" class="text-center">
-                                    <button type="button" class="btn btn-success add-row-btn add-payment-row"><i class="fas fa-plus"></i></button>
-                                </th>
-                            </tr>
-                            <tr>
-                                <th colspan="6" class="text-end">Margin:</th>
-                                <th><span id="margin_percentage" class="ms-2"></span></th>
-                            </tr>
-                        </tfoot>
-                    </table>
                 </div>
-            </div>
-        </fieldset>
+
+                <!-- Payment Mode Information -->
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Payment Mode Information</label>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm" id="payment_details_table">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th style="width: 15%;">Payment Category</th>
+                                    <th style="width: 15%;">Payment Type</th>
+                                    <th style="width: 20%;">Cheque/RTGS Number</th>
+                                    <th style="width: 15%;">PD ACC Number</th>
+                                    <th style="width: 10%;">Full/Partial</th>
+                                    <th style="width: 10%;">Amount</th>
+                                    <th style="width: 10%;">Invoice Date</th>
+                                    <th style="width: 5%; text-align: center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="4" class="text-end">Total Payment Amount:</th>
+                                    <th>
+                                        <input type="text" class="form-control d-inline-block w-auto" id="total_ptm_amount" name="total_ptm_amount" readonly>
+                                    </th>
+                                    <th colspan="2" class="text-center">
+                                        <button type="button" class="btn btn-success btn-sm add-payment-row"><i class="fas fa-plus"></i></button>
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <th colspan="6" class="text-end">Margin:</th>
+                                    <th><span id="margin_percentage" class="ms-2"></span></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn btn-primary mt-3" id="submitBtn">Submit</button>
             </form>
         </div>
     </div>
+    <?php include_once ROOT_DIR_PATH . 'include/inc/footer.php'; ?>
+
 </div>
 
+<!-- Confirmation Modal -->
 <div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="confirmationModalLabel">Confirmation Required</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-            <div class="modal-body" id="modalMessage">
-            </div>
+            <div class="modal-body" id="modalMessage"></div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="confirmSaveBtn">Continue Save</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+
+<style>
+    .validation-message { color: red; font-weight: bold; margin-top: 5px; }
+    .margin-success { color: green; font-weight: bold; }
+    .margin-warning { color: orange; font-weight: bold; }
+    .margin-danger { color: red; font-weight: bold; }
+    .table th, .table td { vertical-align: middle; padding: 0.5rem; }
+    .table input.form-control, .table select.form-control { border: 1px solid #ced4da; padding: 0.375rem 0.75rem; height: auto; }
+    .supplier-item-table th, .supplier-item-table td { padding: 0.3rem; }
+    .supplier-item-table input.form-control { padding: 0.25rem 0.5rem; }
+    .add-row-btn, .remove-row-btn { font-size: 0.9rem; padding: 0.3rem 0.6rem; line-height: 1; }
+    .fas { font-family: 'Font Awesome 5 Free'; font-weight: 900; }
+</style>
+
+
+
+
 
 <script>
 $(document).ready(function() {
