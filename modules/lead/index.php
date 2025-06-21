@@ -23,8 +23,21 @@ if ($user_type === 'superadmin') {
 
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-            <h6 class="m-0 font-weight-bold text-primary">Leads List</h6>
-            <a href="add.php" class="btn btn-primary btn-sm">Add New Lead</a>
+            <div class="row w-100">
+                <div class="col-lg-6 col-md-6 col-sm-6">
+                    <h6 class="m-0 font-weight-bold text-primary">Leads List</h6>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6">
+                    <div class="row">
+                        <div class="col-lg-8 col-md-8 col-sm-8">
+                            <input type="text" name="" id="" class="form-control form-control-sm" placeholder="Search by Lead Number or Contact Name">
+                        </div>
+                        <div class="col-lg-4 col-md-4 col-sm-4 text-right">
+                            <a href="add.php" class="btn btn-primary btn-sm">Add New Lead</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -83,6 +96,10 @@ if ($user_type === 'superadmin') {
             </div>
         </div>
     </div>
+    <div class="mt-5">
+        <?php include_once ROOT_DIR_PATH . 'include/inc/footer-top.php'; ?>
+    </div>
+
 </div>
 
 <!-- Status Modal -->
@@ -170,6 +187,58 @@ $(document).ready(function() {
                 $('#statusHistoryTable tbody').html('<tr><td colspan="3" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading status history. Please try again.</td></tr>');
             }
         });
+    });
+
+    // Search input handler with debounce
+    let searchTimeout = null;
+    $('#searchInput').on('input', function() {
+        clearTimeout(searchTimeout);
+        const query = $(this).val().trim();
+
+        searchTimeout = setTimeout(function() {
+            $.ajax({
+                url: '<?php echo BASE_URL; ?>modules/lead/ajax_process_lead.php',
+                type: 'POST',
+                data: { action: 'search_leads', search: query },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.leads) {
+                        let rows = '';
+                        if (response.leads.length > 0) {
+                            response.leads.forEach(function(lead) {
+                                const approveBtnClass = lead.approve == 1 ? 'btn-success' : 'btn-warning';
+                                const approveText = lead.approve == 1 ? 'Approved' : 'Approve';
+                                rows += '<tr>';
+                                rows += '<td>' + lead.id + '</td>';
+                                rows += '<td>' + lead.lead_number + '</td>';
+                                rows += '<td>' + lead.contact_name + '</td>';
+                                rows += '<td>' + lead.contact_email + '</td>';
+                                rows += '<td>' + lead.country + '</td>';
+                                rows += '<td class="d-flex" style="gap:15px;">' +
+                                    '<button class="btn btn-sm btn-info status-modal-btn" data-id="' + lead.id + '" data-lead="' + lead.lead_number + '">Status</button>' +
+                                    '</td>';
+                                rows += '<td>' +
+                                    '<button class="btn btn-sm ' + approveBtnClass + ' toggle-approve-btn" data-id="' + lead.id + '" data-approve="' + lead.approve + '">' + approveText + '</button>' +
+                                    '</td>';
+                                rows += '<td>' +
+                                    '<a href="add.php?lead_id=' + encodeURIComponent(lead.id) + '" class="btn btn-sm btn-info">Edit</a>' +
+                                    '</td>';
+                                rows += '</tr>';
+                            });
+                        } else {
+                            rows = '<tr><td colspan="8" class="text-center">No leads found.</td></tr>';
+                        }
+                        $('#leadsTable tbody').html(rows);
+                    } else {
+                        $('#leadsTable tbody').html('<tr><td colspan="8" class="text-center text-danger">Error loading leads.</td></tr>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Search AJAX error:', error);
+                    $('#leadsTable tbody').html('<tr><td colspan="8" class="text-center text-danger">Error loading leads.</td></tr>');
+                }
+            });
+        }, 300); // debounce delay 300ms
     });
 
     // Add new status

@@ -79,7 +79,12 @@ if ($user_type === 'superadmin') {
             </form>
         </div>
     </div>
+    <div class="mt-5">
+        <?php include_once ROOT_DIR_PATH . 'include/inc/footer-top.php'; ?>
+    </div>
 </div>
+
+
 
 <!-- Country-State-City Library -->
 <script src="https://cdn.jsdelivr.net/npm/country-state-city@3.0.1/dist/country-state-city.min.js"></script>

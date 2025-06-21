@@ -32,17 +32,19 @@ try {
 }
 ?>
 
-<div id="content-wrapper" class="d-flex flex-column">
-    <div id="content">
-        <?php include_once ROOT_DIR_PATH . 'include/inc/topbar.php'; ?>
+<div class="container-fluid">
+    <?php include_once ROOT_DIR_PATH . 'include/inc/topbar.php'; ?>
 
-        <div class="container-fluid">
-            <h1 class="h3 mb-4 text-gray-800">Proforma Invoices (PIs)</h1>
+    <?php if (!empty($error)) : ?>
+        <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+    <?php endif; ?>
 
-            <?php if (!empty($error)) : ?>
-                <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
-            <?php endif; ?>
-
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Proforma Invoices (PIs) List</h6>
+            <input type="text" id="piSearchInput" class="form-control form-control-sm w-25" placeholder="Search PIs...">
+        </div>
+        <div class="card-body">
             <div class="table-responsive">
                 <table id="piTable" class="table table-bordered table-striped">
                     <thead>
@@ -73,10 +75,10 @@ try {
                                         <button type="button" class="btn btn-info btn-sm export-btn sharePiBtn mr-2" data-toggle="modal" data-target="#sharePiModal_<?php echo $pi['pi_id']; ?>" title="Share">
                                             <i class="fas fa-share-alt"></i>
                                         </button>
-                                        <button type="button" class="btn btn-success btn-sm export-btn exportExcelBtn mr-2" data-id="<?php echo $pi['pi_id']; ?>" title="Export to Excel">
+                                        <button type="button" class="btn btn-success btn-sm export-btn exportExcelBtn mr-2 d-none" data-id="<?php echo $pi['pi_id']; ?>" title="Export to Excel">
                                             <i class="fas fa-file-excel"></i>
                                         </button>
-                                        <button type="button" class="btn btn-danger btn-sm export-btn exportPdfBtn" data-id="<?php echo $pi['pi_id']; ?>" title="Export to PDF">
+                                        <button type="button" class="btn btn-danger btn-sm export-btn exportPdfBtn d-none" data-id="<?php echo $pi['pi_id']; ?>" title="Export to PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </button>
                                     </div>
@@ -86,32 +88,31 @@ try {
                     </tbody>
                 </table>
             </div>
-
-            <!-- Share PI Modal -->
-            <?php foreach ($pis as $pi) : ?>
-            <div class="modal fade" id="sharePiModal_<?php echo $pi['pi_id']; ?>" tabindex="-1" role="dialog" aria-labelledby="sharePiModalLabel_<?php echo $pi['pi_id']; ?>" aria-hidden="true">
-                <div class="modal-dialog modal-sm" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="sharePiModalLabel_<?php echo $pi['pi_id']; ?>">Send Email Confirmation</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="$('#sharePiModal_<?php echo $pi['pi_id']; ?>').modal('hide')">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Do you want to send email for PI - <?php echo htmlspecialchars($pi['pi_number']); ?>?</p>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="$('#sharePiModal_<?php echo $pi['pi_id']; ?>').modal('hide')">Cancel</button>
-                            <button type="button" class="btn btn-primary confirmSendEmailBtn" data-pi-id="<?php echo $pi['pi_id']; ?>">Yes</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <?php endforeach; ?>
-
         </div>
     </div>
+
+    <?php foreach ($pis as $pi) : ?>
+    <div class="modal fade" id="sharePiModal_<?php echo $pi['pi_id']; ?>" tabindex="-1" role="dialog" aria-labelledby="sharePiModalLabel_<?php echo $pi['pi_id']; ?>" aria-hidden="true">
+        <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sharePiModalLabel_<?php echo $pi['pi_id']; ?>">Send Email Confirmation</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="$('#sharePiModal_<?php echo $pi['pi_id']; ?>').modal('hide')">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Do you want to send email for PI - <?php echo htmlspecialchars($pi['pi_number']); ?>?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="$('#sharePiModal_<?php echo $pi['pi_id']; ?>').modal('hide')">Cancel</button>
+                    <button type="button" class="btn btn-primary confirmSendEmailBtn" data-pi-id="<?php echo $pi['pi_id']; ?>">Yes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endforeach; ?>
+
 </div>
 
 <?php include_once ROOT_DIR_PATH . 'include/inc/footer.php'; ?>
@@ -133,13 +134,14 @@ try {
 <script>
 $(document).ready(function() {
     var piTable = $('#piTable').DataTable({
-        dom: 'Bfrtip',
-        buttons: [
-            'excelHtml5',
-            'pdfHtml5'
-        ],
         order: [[0, 'desc']],
-        pageLength: 10
+        pageLength: 10,
+        dom: 'lrtip',
+        buttons: [],
+        searching: false,
+        paging: false,
+        info: false,
+        lengthChange: false
     });
 
     $('#piTable').on('click', '.viewQuotationBtn', function() {

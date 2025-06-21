@@ -6,7 +6,6 @@ if (!defined('ROOT_DIR_PATH')) {
 include_once ROOT_DIR_PATH . 'include/inc/header.php';
 session_start();
 
-
 $user_type = $_SESSION['user_type'] ?? 'guest';
 
 if ($user_type === 'superadmin') {
@@ -15,38 +14,53 @@ if ($user_type === 'superadmin') {
     include_once ROOT_DIR_PATH . 'salesadmin/sidebar.php';
 } elseif ($user_type === 'accounts') {
     include_once ROOT_DIR_PATH . 'accountsadmin/sidebar.php';
-} else {
-    
 }
 
 ?>
 <div class="container-fluid">
     <?php include_once ROOT_DIR_PATH . 'include/inc/topbar.php'; ?>
-    <h1 class="h3 mb-4 text-gray-800">Payments List</h1>
-    <?php
-    global $conn;
-    try {
-        $stmt = $conn->query("
-            SELECT 
-                p.id, p.pon_number, p.po_amt, p.son_number, 
-                GROUP_CONCAT(DISTINCT s.invoice_number SEPARATOR ', ') AS invoice_numbers,
-                IFNULL(SUM(s.invoice_amount), 0) AS total_invoice_amount,
-                MAX(pd.payment_invoice_date) AS latest_payment_invoice_date
-            FROM payments p
-            LEFT JOIN suppliers s ON s.payment_id = p.id
-            LEFT JOIN payment_details pd ON pd.payment_id = p.id
-            GROUP BY p.id
-            ORDER BY p.id DESC
-        ");
-        $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (Exception $e) {
-        $payments = [];
-    }
-    ?>
+
     <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <div class="row w-100">
+                <div class="col-lg-6 col-md-6 col-sm-6">
+                    <h6 class="m-0 font-weight-bold text-primary">Payments List</h6>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6">
+                    <div class="row">
+                        <div class="col-lg-8 col-md-8 col-sm-8">
+                            <input type="text" id="searchPaymentInput" class="form-control form-control-sm" placeholder="Search by PO Number or SO Number">
+                        </div>
+                        <div class="col-lg-4 col-md-4 col-sm-4 text-right">
+                            <a href="add.php" class="btn btn-primary btn-sm">Add New Payment</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="card-body">
+            <?php
+            global $conn;
+            try {
+                $stmt = $conn->query("
+                    SELECT 
+                        p.id, p.pon_number, p.po_amt, p.son_number, 
+                        GROUP_CONCAT(DISTINCT s.invoice_number SEPARATOR ', ') AS invoice_numbers,
+                        IFNULL(SUM(s.invoice_amount), 0) AS total_invoice_amount,
+                        MAX(pd.payment_invoice_date) AS latest_payment_invoice_date
+                    FROM payments p
+                    LEFT JOIN suppliers s ON s.payment_id = p.id
+                    LEFT JOIN payment_details pd ON pd.payment_id = p.id
+                    GROUP BY p.id
+                    ORDER BY p.id DESC
+                ");
+                $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {
+                $payments = [];
+            }
+            ?>
             <div class="table-responsive">
-                <table class="table table-bordered" id="paymentsTable" width="100%" cellspacing="0">
+                <table class="table table-bordered table-striped" id="paymentsTable">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -95,7 +109,12 @@ if ($user_type === 'superadmin') {
             </div>
         </div>
     </div>
+    <div class="mt-5">
+        <?php include_once ROOT_DIR_PATH . 'include/inc/footer-top.php'; ?>
+    </div>
 </div>
+
+<!-- Item Details Modal -->
 <div class="modal fade" id="itemDetailsModal" tabindex="-1" role="dialog" aria-labelledby="itemDetailsModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
@@ -131,9 +150,95 @@ if ($user_type === 'superadmin') {
     </div>
   </div>
 </div>
+
+<!-- Job Card Details Modal -->
+<div class="modal fade" id="jobCardDetailsModal" tabindex="-1" role="dialog" aria-labelledby="jobCardDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="jobCardDetailsModalLabel">Job Card Details</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered" id="jobCardDetailsTable">
+          <thead>
+            <tr>
+              <th>Job Card No.</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th>Total Amount:</th>
+              <th id="totalJobCardAmount"></th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Details Modal -->
+<div class="modal fade" id="paymentDetailsModal" tabindex="-1" role="dialog" aria-labelledby="paymentDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="paymentDetailsModalLabel">Payment Details</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered" id="paymentDetailsTable">
+          <thead>
+            <tr>
+              <th>Payment Category</th>
+              <th>Payment Type</th>
+              <th>Cheque/RTGS Number</th>
+              <th>PD ACC Number</th>
+              <th>Full/Partial</th>
+              <th>Amount</th>
+              <th>Invoice Date</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="6" class="text-right">Total Amount:</th>
+              <th id="totalPaymentAmount"></th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- jQuery (First) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Popper.js (for Bootstrap 4 compatibility) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
+<!-- Bootstrap 4 JS (for modal) -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<!-- Toastr JS (optional, if you want notifications) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
 <script>
 $(document).ready(function() {
-    $('.view-items-btn').on('click', function() {
+    // Item Details Modal
+    $(document).on('click', '.view-items-btn', function() {
         var paymentId = $(this).data('payment-id');
         $('#itemDetailsTable tbody').empty();
         $('#totalItemAmount').text('');
@@ -180,7 +285,8 @@ $(document).ready(function() {
         });
     });
 
-    $('.view-jobcards-btn').on('click', function() {
+    // Job Card Details Modal
+    $(document).on('click', '.view-jobcards-btn', function() {
         var paymentId = $(this).data('payment-id');
         $('#jobCardDetailsTable tbody').empty();
         $('#totalJobCardAmount').text('');
@@ -221,7 +327,8 @@ $(document).ready(function() {
         });
     });
 
-    $('.view-payments-btn').on('click', function() {
+    // Payment Details Modal
+    $(document).on('click', '.view-payments-btn', function() {
         var paymentId = $(this).data('payment-id');
         $('#paymentDetailsTable tbody').empty();
         $('#totalPaymentAmount').text('');
@@ -272,78 +379,53 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Search input handler with debounce
+    let searchTimeout = null;
+    $('#searchPaymentInput').on('input', function() {
+        clearTimeout(searchTimeout);
+        const query = $(this).val().trim();
+
+        searchTimeout = setTimeout(function() {
+            $.ajax({
+                url: '<?php echo BASE_URL; ?>modules/payments/ajax_get_payment_details.php',
+                type: 'POST',
+                data: { action: 'search_payments', search: query },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.payments) {
+                        let rows = '';
+                        if (response.payments.length > 0) {
+                            response.payments.forEach(function(payment) {
+                                rows += '<tr>';
+                                rows += '<td>' + payment.id + '</td>';
+                                rows += '<td>' + payment.pon_number + '</td>';
+                                rows += '<td>' + payment.po_amt + '</td>';
+                                rows += '<td>' + payment.son_number + '</td>';
+                                rows += '<td>' + payment.invoice_numbers + '</td>';
+                                rows += '<td>' + payment.total_invoice_amount + '</td>';
+                                rows += '<td>' + payment.latest_payment_invoice_date + '</td>';
+                                rows += '<td><button class="btn btn-info btn-sm view-jobcards-btn" data-payment-id="' + payment.id + '">View Job Cards</button></td>';
+                                rows += '<td><button class="btn btn-info btn-sm view-payments-btn" data-payment-id="' + payment.id + '">View Payments</button></td>';
+                                rows += '<td><button class="btn btn-info btn-sm view-items-btn" data-payment-id="' + payment.id + '">View Items</button></td>';
+                                rows += '<td><a href="add.php?payment_id=' + encodeURIComponent(payment.id) + '" class="btn btn-primary btn-sm">Edit</a></td>';
+                                rows += '</tr>';
+                            });
+                        } else {
+                            rows = '<tr><td colspan="11" class="text-center">No payments found.</td></tr>';
+                        }
+                        $('#paymentsTable tbody').html(rows);
+                    } else {
+                        $('#paymentsTable tbody').html('<tr><td colspan="11" class="text-center text-danger">Error loading payments.</td></tr>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#paymentsTable tbody').html('<tr><td colspan="11" class="text-center text-danger">Error loading payments.</td></tr>');
+                }
+            });
+        }, 300); // debounce delay 300ms
+    });
 });
 </script>
 
-<div class="modal fade" id="jobCardDetailsModal" tabindex="-1" role="dialog" aria-labelledby="jobCardDetailsModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="jobCardDetailsModalLabel">Job Card Details</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <table class="table table-bordered" id="jobCardDetailsTable">
-          <thead>
-            <tr>
-              <th>Job Card No.</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-          <tfoot>
-            <tr>
-              <th>Total Amount:</th>
-              <th id="totalJobCardAmount"></th>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="paymentDetailsModal" tabindex="-1" role="dialog" aria-labelledby="paymentDetailsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="paymentDetailsModalLabel">Payment Details</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <table class="table table-bordered" id="paymentDetailsTable">
-          <thead>
-            <tr>
-              <th>Payment Category</th>
-              <th>Payment Type</th>
-              <th>Cheque/RTGS Number</th>
-              <th>PD ACC Number</th>
-              <th>Full/Partial</th>
-              <th>Amount</th>
-              <th>Invoice Date</th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-          <tfoot>
-            <tr>
-              <th colspan="6" class="text-right">Total Amount:</th>
-              <th id="totalPaymentAmount"></th>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
+<?php include_once ROOT_DIR_PATH . 'include/inc/footer.php'; ?>

@@ -250,6 +250,26 @@ if ($action === 'get_next_lead_number') {
     } else {
         $response['message'] = 'Missing lead ID or approval value.';
     }
+} elseif ($action === 'search_leads') {
+    $search = $_POST['search'] ?? '';
+    try {
+        $searchTerm = '%' . $search . '%';
+        $query = "SELECT * FROM leads WHERE lead_number LIKE :search OR contact_name LIKE :search OR contact_email LIKE :search OR country LIKE :search ORDER BY id DESC";
+        $stmt = $conn->prepare($query);
+
+        if ($stmt === false) {
+            throw new Exception('Failed to prepare statement for search_leads.');
+        }
+
+        $stmt->bindParam(':search', $searchTerm, PDO::PARAM_STR);
+        $stmt->execute();
+        $leads = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $response['success'] = true;
+        $response['leads'] = $leads;
+    } catch (Exception $e) {
+        $response['message'] = 'Database error: ' . $e->getMessage();
+    }
 } else {
     $response['message'] = 'Invalid request.';
 }
