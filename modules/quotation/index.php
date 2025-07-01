@@ -15,7 +15,25 @@ if ($user_type === 'superadmin') {
 
 try {
     global $conn;
-    $stmt = $conn->query("SELECT id, lead_id, quotation_number, customer_name, customer_email, customer_phone, delivery_term, terms_of_delivery, approve, locked FROM quotations ORDER BY id DESC");
+
+    $limit = 20;
+    $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+    $offset = ($page - 1) * $limit;
+
+    // Get total count for pagination
+    $countSql = "SELECT COUNT(*) as total FROM quotations";
+    $countStmt = $conn->prepare($countSql);
+    $countStmt->execute();
+    $countResult = $countStmt->fetch(PDO::FETCH_ASSOC);
+    $totalRows = $countResult['total'];
+    $totalPages = ceil($totalRows / $limit);
+
+    // Fetch paginated data
+    $sql = "SELECT id, lead_id, quotation_number, customer_name, customer_email, customer_phone, delivery_term, terms_of_delivery, approve, locked FROM quotations ORDER BY id DESC LIMIT :limit OFFSET :offset";
+    $stmt = $conn->prepare($sql);
+    $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+    $stmt->execute();
     $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         $quotations = [];
@@ -85,30 +103,53 @@ try {
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
+    </tbody>
+</table>
+</div>
+
+<nav aria-label="Page navigation example">
+  <ul class="pagination justify-content-center">
+    <?php if ($page > 1): ?>
+      <li class="page-item"><a class="page-link" href="?page=<?php echo $page - 1; ?>">Previous</a></li>
+    <?php else: ?>
+      <li class="page-item disabled"><span class="page-link">Previous</span></li>
+    <?php endif; ?>
+
+    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+      <li class="page-item <?php echo ($i === $page) ? 'active' : ''; ?>">
+        <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+      </li>
+    <?php endfor; ?>
+
+    <?php if ($page < $totalPages): ?>
+      <li class="page-item"><a class="page-link" href="?page=<?php echo $page + 1; ?>">Next</a></li>
+    <?php else: ?>
+      <li class="page-item disabled"><span class="page-link">Next</span></li>
+    <?php endif; ?>
+  </ul>
+</nav>
+
+<?php foreach ($quotations as $quotation) : ?>
+<div class="modal fade" id="lockQuotationModal_<?php echo $quotation['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="lockQuotationModalLabel_<?php echo $quotation['id']; ?>">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="lockQuotationModalLabel_<?php echo $quotation['id']; ?>">Lock Quotation</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="$('#lockQuotationModal_<?php echo $quotation['id']; ?>').modal('hide')">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-            <?php foreach ($quotations as $quotation) : ?>
-            <div class="modal fade" id="lockQuotationModal_<?php echo $quotation['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="lockQuotationModalLabel_<?php echo $quotation['id']; ?>">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="lockQuotationModalLabel_<?php echo $quotation['id']; ?>">Lock Quotation</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="$('#lockQuotationModal_<?php echo $quotation['id']; ?>').modal('hide')">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Are you sure you want to lock this quotation? Once locked, it cannot be edited or approved.</p>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="$('#lockQuotationModal_<?php echo $quotation['id']; ?>').modal('hide')">Cancel</button>
-                            <button type="button" class="btn btn-primary confirmLockBtn" data-quotation-id="<?php echo $quotation['id']; ?>">Lock</button>
-                        </div>
-                    </div>
-                </div>
+            <div class="modal-body">
+                <p>Are you sure you want to lock this quotation? Once locked, it cannot be edited or approved.</p>
             </div>
-            <?php endforeach; ?>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="$('#lockQuotationModal_<?php echo $quotation['id']; ?>').modal('hide')">Cancel</button>
+                <button type="button" class="btn btn-primary confirmLockBtn" data-quotation-id="<?php echo $quotation['id']; ?>">Lock</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endforeach; ?>
         
     
     </div>
@@ -129,129 +170,13 @@ try {
 
 <script>
 $(document).ready(function() {
-    // var quotationsTable = $('#quotationsTable').DataTable({
-    //     dom: 'Bfrtip',
-    //     buttons: [
-    //         'excelHtml5',
-    //         'pdfHtml5'
-    //     ],
-    //     order: [[0, 'desc']],
-    //     pageLength: 10
-    // });
-
-    var currentQuotationId = null;
-
-    $('#quotationsTable').on('click', '.viewStatusBtn', function() {
-        currentQuotationId = $(this).data('quotation-id');
-        $('#statusDate').val('');
-        $('#statusText').val('');
-        $('#statusHistoryTable tbody').empty();
-
-        $.ajax({
-            url: '<?php echo BASE_URL; ?>modules/quotation/ajax_get_quotation_status.php',
-            type: 'GET',
-            data: { quotation_id: currentQuotationId },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    var statuses = response.data;
-                    $('#statusHistoryTable tbody').empty();
-                    statuses.forEach(function(item) {
-                        $('#statusHistoryTable tbody').append(
-                            '<tr class="text-center"><td>' + item.status_date + '</td><td>' + item.status_text + '</td></tr>'
-                        );
-                    });
-                } else {
-                    alert('Failed to fetch status history: ' + response.message);
-                }
-            },
-            error: function() {
-                alert('Error occurred while fetching status history.');
-            }
-        });
-
-        $('#viewStatusModal').modal('show');
-    });
-
-    $('#addStatusBtn').click(function() {
-        var date = $('#statusDate').val();
-        var status = $('#statusText').val();
-        if (!date || !status) {
-            alert('Please enter both date and status.');
-            return;
-        }
-        if (!currentQuotationId) {
-            alert('No quotation selected.');
-            return;
-        }
-        $.ajax({
-            url: '<?php echo BASE_URL; ?>modules/quotation/ajax_update_quotation_status.php',
-            type: 'POST',
-            data: {
-                quotation_id: currentQuotationId,
-                status: status,
-                status_date: date
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    $('#statusHistoryTable tbody').append(
-                        '<tr class="text-center"><td>' + date + '</td><td>' + status + '</td></tr>'
-                    );
-                    $('#statusDate').val('');
-                    $('#statusText').val('');
-                } else {
-                    alert('Failed to add status: ' + response.message);
-                }
-            },
-            error: function() {
-                alert('Error occurred while adding status.');
-            }
-        });
-    });
-
-    $('#quotationsTable').on('click', '.editQuotationBtn', function() {
-        var quotationId = $(this).data('quotation-id');
-        window.location.href = 'add.php?id=' + quotationId;
-    });
-
-    $('#quotationsTable').on('click', '.activeStatusBtn', function() {
-        var button = $(this);
-        var quotationId = button.data('quotation-id');
-        var newApprove = button.hasClass('btn-success') ? 0 : 1;
-
-        $.ajax({
-            url: '<?php echo BASE_URL; ?>modules/quotation/ajax_update_quotation_status.php',
-            type: 'POST',
-            data: { quotation_id: quotationId, approve: newApprove },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    if (newApprove === 1) {
-                        button.removeClass('btn-warning').addClass('btn-success');
-                        button.text('Approved');
-                    } else {
-                        button.removeClass('btn-success').addClass('btn-warning');
-                        button.text('Approve');
-                    }
-                } else {
-                    alert('Failed to update approve status: ' + response.message);
-                }
-            },
-            error: function() {
-                alert('Error occurred while updating approve status.');
-            }
-        });
-    });
-
-    $('#quotationsTable').on('click', '.exportExcelBtn', function() {
-        var quotationId = $(this).data('id');
-        window.location.href = '<?php echo BASE_URL; ?>modules/quotation/export_quotation_excel.php?id=' + quotationId;
-    });
-
-    $('#quotationsTable').on('click', '.exportPdfBtn', function() {
-        var quotationId = $(this).data('id');
-        window.location.href = '<?php echo BASE_URL; ?>modules/quotation/export_quotation_pdf.php?id=' + quotationId;
+    $('#quotationsTable').DataTable({
+        dom: '<"row"<"col-sm-6"i><"col-sm-6"p>>rt<"row"<"col-sm-12">>',
+        paging: true,
+        searching: true,
+        ordering: true,
+        lengthChange: false,
+        pageLength: 10
     });
 });
 </script>

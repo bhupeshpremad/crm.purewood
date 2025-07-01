@@ -1,5 +1,5 @@
 <?php
 
-// include_once '../../../modules/payments/add.php';
+include_once '../../modules/purchase/add.php';
 
 ?>

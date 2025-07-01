@@ -1,0 +1,7 @@
+ALTER TABLE payment_details
+ADD COLUMN cgst_percentage DECIMAL(5,2) DEFAULT 0,
+ADD COLUMN cgst_amount DECIMAL(10,2) DEFAULT 0,
+ADD COLUMN sgst_percentage DECIMAL(5,2) DEFAULT 0,
+ADD COLUMN sgst_amount DECIMAL(10,2) DEFAULT 0,
+ADD COLUMN igst_percentage DECIMAL(5,2) DEFAULT 0,
+ADD COLUMN igst_amount DECIMAL(10,2) DEFAULT 0;

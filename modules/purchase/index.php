@@ -18,11 +18,6 @@ if ($user_type === 'superadmin') {
 
 global $conn;
 
-// Pagination and search parameters
-$limit = 20;
-$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
-$offset = ($page - 1) * $limit;
-
 $search_po = $_GET['search_po'] ?? '';
 $search_jci = $_GET['search_jci'] ?? '';
 $search_son = $_GET['search_son'] ?? '';
@@ -31,15 +26,15 @@ $whereClauses = [];
 $params = [];
 
 if ($search_po !== '') {
-    $whereClauses[] = 'po_number LIKE :po_number';
+    $whereClauses[] = 'pm_tbl.po_number LIKE :po_number';
     $params[':po_number'] = '%' . $search_po . '%';
 }
 if ($search_jci !== '') {
-    $whereClauses[] = 'jci_number LIKE :jci_number';
+    $whereClauses[] = 'p.jci_number LIKE :jci_number';
     $params[':jci_number'] = '%' . $search_jci . '%';
 }
 if ($search_son !== '') {
-    $whereClauses[] = 'sell_order_number LIKE :sell_order_number';
+    $whereClauses[] = 'p.sell_order_number LIKE :sell_order_number';
     $params[':sell_order_number'] = '%' . $search_son . '%';
 }
 
@@ -48,51 +43,36 @@ if (count($whereClauses) > 0) {
     $whereSql = 'WHERE ' . implode(' AND ', $whereClauses);
 }
 
-// Get total count for pagination
-$countSql = "SELECT COUNT(*) as total FROM purchase_main $whereSql";
-$countStmt = $conn->prepare($countSql);
-$countStmt->execute($params);
-$countResult = $countStmt->fetch(PDO::FETCH_ASSOC);
-$totalRows = $countResult['total'];
-$totalPages = ceil($totalRows / $limit);
+$sql = "SELECT p.id, pm_tbl.po_number, p.jci_number, p.sell_order_number 
+        FROM purchase_main p 
+        JOIN po_main pm_tbl ON p.po_main_id = pm_tbl.id 
+        $whereSql 
+        ORDER BY p.id DESC";
 
-// Fetch paginated data
-$sql = "SELECT id, po_number, jci_number, sell_order_number FROM purchase_main $whereSql ORDER BY id DESC LIMIT :limit OFFSET :offset";
 $stmt = $conn->prepare($sql);
 
 foreach ($params as $key => $value) {
     $stmt->bindValue($key, $value, PDO::PARAM_STR);
 }
-$stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
-$stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
 
 $stmt->execute();
 $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css"/>
 <div class="container-fluid">
     <?php include_once ROOT_DIR_PATH . 'include/inc/topbar.php'; ?>
-
     <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-end gap-3">
-            <div class="row w-100 align-items-center">
-                <div class="col-lg-6 col-md-6 col-sm-6">
-                    <h6 class="m-0 font-weight-bold text-primary">Purchase List</h6>
-                </div>
-                <div class="col-lg-6 col-md-6 col-sm-6">
-                    <div class="row justify-content-start align-items-end">
-                        <div class="col-lg-1"></div>
-                        <div class="col-lg-7 col-md-7">
-                            <input type="text" id="purchaseSearchInput" class="form-control form-control-sm" placeholder="Search Purchase...">  
-                        </div>
-                        <div class="col-lg-4 col-md-4 text-end">
-                            <a href="add.php" class="btn btn-primary btn-sm">Add Purchase</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Purchase List</h6>
+                <form action="" method="GET" class="d-flex flex-wrap gap-2">
+                  
+                    <input type="text" name="search_son" class="form-control form-control-sm mb-2" style="max-width:180px;" placeholder="Search Sell Order No." value="<?php echo htmlspecialchars($search_son); ?>">
+                    <button type="submit" class="btn btn-info btn-sm ms-2 mb-2 mx-2">Search</button>
+                    <a href="add.php" class="btn btn-primary btn-sm ms-2 mb-2">Add Purchase</a>
+                </form>
         </div>
         <div class="card-body">
+
             <table class="table table-bordered" id="purchaseTable">
                 <thead>
                     <tr>
@@ -105,7 +85,7 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </thead>
                 <tbody>
                     <?php
-                    $serial = $offset + 1;
+                    $serial = 1;
                     if ($result && count($result) > 0) {
                         foreach ($result as $row) {
                             $purchase_id = $row['id'];
@@ -114,10 +94,7 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             echo "<td><a href='#' class='purchase-details-link' data-id='{$purchase_id}'>" . htmlspecialchars($row['po_number']) . "</a></td>";
                             echo "<td><a href='#' class='purchase-details-link' data-id='{$purchase_id}'>" . htmlspecialchars($row['jci_number']) . "</a></td>";
                             echo "<td><a href='#' class='purchase-details-link' data-id='{$purchase_id}'>" . htmlspecialchars($row['sell_order_number']) . "</a></td>";
-
-                            // Edit button linking to add.php with purchase id
                             echo "<td><a href='add.php?id={$purchase_id}' class='btn btn-primary btn-sm'>Edit</a></td>";
-
                             echo "</tr>";
                         }
                     } else {
@@ -126,61 +103,62 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     ?>
                 </tbody>
             </table>
-
-            <!-- Pagination -->
-            <!-- Removed pagination as per user request -->
         </div>
     </div>
 </div>
-
-<!-- Modals for details -->
 <div class="modal fade" id="detailsModal" tabindex="-1" role="dialog" aria-labelledby="detailsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="detailsModalLabel">Details</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body" id="detailsModalBody">
-        <!-- Details content will be loaded here -->
-        <div class="text-center">
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailsModalLabel">Details</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="detailsModalBody">
+                <div class="text-center">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
     </div>
-  </div>
 </div>
-
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script>
 $(document).ready(function() {
+    $('#purchaseTable').DataTable({
+        dom: 'rt<"row mt-3"<"col-sm-12"p>><"row"<"col-sm-12"i>>',
+        paging: true,
+        searching: false,
+        ordering: true,
+        lengthChange: false,
+        pageLength: 20
+    });
     $('.purchase-details-link').click(function(e) {
         e.preventDefault();
         var purchaseId = $(this).data('id');
-        $('#detailsModalLabel').text('Purchase Details');
+        $('#detailsModalLabel').text('Purchase Details (ID: ' + purchaseId + ')');
         $('#detailsModalBody').html('<div class="text-center"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...</div>');
         $('#detailsModal').modal('show');
-
         $.ajax({
             url: 'fetch_purchase_details.php',
             method: 'POST',
-            data: { purchase_id: purchaseId, section: 'all' },
+            data: { purchase_id: purchaseId },
             dataType: 'html',
             success: function(data) {
                 $('#detailsModalBody').html(data);
             },
-            error: function() {
-                $('#detailsModalBody').html('<div class="alert alert-danger">Failed to load details.</div>');
+            error: function(xhr, status, error) {
+                $('#detailsModalBody').html('<div class="alert alert-danger">Failed to load details. Error: ' + (xhr.responseText || error) + '</div>');
             }
         });
     });
 });
 </script>
-
 <?php
 include_once ROOT_DIR_PATH . 'include/inc/footer.php';
 ?>

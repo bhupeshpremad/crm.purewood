@@ -19,12 +19,26 @@ if ($user_type === 'superadmin') {
 
 
 try {
-    // $database = new Database();
-    // $conn = $database->getConnection();
-
     global $conn;
 
-    $stmt = $conn->query("SELECT pi_id, pi_number, quotation_number, status, date_of_pi_raised FROM pi ORDER BY pi_id DESC");
+    $limit = 20;
+    $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+    $offset = ($page - 1) * $limit;
+
+    // Get total count for pagination
+    $countSql = "SELECT COUNT(*) as total FROM pi";
+    $countStmt = $conn->prepare($countSql);
+    $countStmt->execute();
+    $countResult = $countStmt->fetch(PDO::FETCH_ASSOC);
+    $totalRows = $countResult['total'];
+    $totalPages = ceil($totalRows / $limit);
+
+    // Fetch paginated data
+    $sql = "SELECT pi_id, pi_number, quotation_number, status, date_of_pi_raised FROM pi ORDER BY pi_id DESC LIMIT :limit OFFSET :offset";
+    $stmt = $conn->prepare($sql);
+    $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+    $stmt->execute();
     $pis = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $pis = [];
@@ -85,33 +99,54 @@ try {
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+</tbody>
+</table>
+</div>
 
-    <?php foreach ($pis as $pi) : ?>
-    <div class="modal fade" id="sharePiModal_<?php echo $pi['pi_id']; ?>" tabindex="-1" role="dialog" aria-labelledby="sharePiModalLabel_<?php echo $pi['pi_id']; ?>" aria-hidden="true">
-        <div class="modal-dialog modal-sm" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="sharePiModalLabel_<?php echo $pi['pi_id']; ?>">Send Email Confirmation</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="$('#sharePiModal_<?php echo $pi['pi_id']; ?>').modal('hide')">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <p>Do you want to send email for PI - <?php echo htmlspecialchars($pi['pi_number']); ?>?</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="$('#sharePiModal_<?php echo $pi['pi_id']; ?>').modal('hide')">Cancel</button>
-                    <button type="button" class="btn btn-primary confirmSendEmailBtn" data-pi-id="<?php echo $pi['pi_id']; ?>">Yes</button>
-                </div>
+<!-- Pagination Controls -->
+<nav aria-label="Page navigation example">
+  <ul class="pagination justify-content-center">
+    <?php if ($page > 1): ?>
+      <li class="page-item"><a class="page-link" href="?page=<?php echo $page - 1; ?>">Previous</a></li>
+    <?php else: ?>
+      <li class="page-item disabled"><span class="page-link">Previous</span></li>
+    <?php endif; ?>
+
+    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+      <li class="page-item <?php echo ($i === $page) ? 'active' : ''; ?>">
+        <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+      </li>
+    <?php endfor; ?>
+
+    <?php if ($page < $totalPages): ?>
+      <li class="page-item"><a class="page-link" href="?page=<?php echo $page + 1; ?>">Next</a></li>
+    <?php else: ?>
+      <li class="page-item disabled"><span class="page-link">Next</span></li>
+    <?php endif; ?>
+  </ul>
+</nav>
+
+<?php foreach ($pis as $pi) : ?>
+<div class="modal fade" id="sharePiModal_<?php echo $pi['pi_id']; ?>" tabindex="-1" role="dialog" aria-labelledby="sharePiModalLabel_<?php echo $pi['pi_id']; ?>" aria-hidden="true">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sharePiModalLabel_<?php echo $pi['pi_id']; ?>">Send Email Confirmation</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="$('#sharePiModal_<?php echo $pi['pi_id']; ?>').modal('hide')">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Do you want to send email for PI - <?php echo htmlspecialchars($pi['pi_number']); ?>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="$('#sharePiModal_<?php echo $pi['pi_id']; ?>').modal('hide')">Cancel</button>
+                <button type="button" class="btn btn-primary confirmSendEmailBtn" data-pi-id="<?php echo $pi['pi_id']; ?>">Yes</button>
             </div>
         </div>
     </div>
-    <?php endforeach; ?>
+</div>
+<?php endforeach; ?>
 
 </div>
 
@@ -133,91 +168,13 @@ try {
 
 <script>
 $(document).ready(function() {
-    var piTable = $('#piTable').DataTable({
-        order: [[0, 'desc']],
-        pageLength: 10,
-        dom: 'lrtip',
-        buttons: [],
-        searching: false,
-        paging: false,
-        info: false,
-        lengthChange: false
-    });
-
-    $('#piTable').on('click', '.viewQuotationBtn', function() {
-        var quotationNumber = $(this).data('quotation-number');
-        $('#quotationDetailsContent').html('<p>Loading...</p>');
-        $('#quotationDetailsModal').modal('show');
-
-        $.ajax({
-            url: '<?php echo BASE_URL; ?>modules/quotation/get_quotation_details.php',
-            type: 'GET',
-            data: { quotation_number: quotationNumber },
-            dataType: 'html',
-            success: function(response) {
-                $('#quotationDetailsContent').html(response);
-            },
-            error: function() {
-                $('#quotationDetailsContent').html('<p>Error loading quotation details.</p>');
-            }
-        });
-    });
-
-    // Handle per-row Excel export button click
-    $('#piTable').on('click', '.exportExcelBtn', function() {
-        var piId = $(this).data('id');
-        window.location.href = '<?php echo BASE_URL; ?>modules/pi/export_pi_excel.php?id=' + piId;
-    });
-
-    // Handle per-row PDF export button click
-    $('#piTable').on('click', '.exportPdfBtn', function() {
-        var piId = $(this).data('id');
-        window.location.href = '<?php echo BASE_URL; ?>modules/pi/export_pi_pdf.php?id=' + piId;
-    });
-
-    // Handle share button click
-    $('#piTable').on('click', '.sharePiBtn', function() {
-        var piId = $(this).data('target').split('_').pop();
-        $('#sharePiModal_' + piId).modal('show');
-    });
-
-    // Handle Yes button click in share modal
-    $('.confirmSendEmailBtn').on('click', function() {
-        var piId = $(this).data('pi-id');
-
-        var button = $(this);
-        button.prop('disabled', true).text('Sending...');
-
-        // Prepare data for email sending
-        var subject = 'Proforma Invoice - ' + piId;
-        var message = 'Dear Customer,\n\nPlease find attached the Proforma Invoice.\n\nThank you,\nPurewood Team';
-
-        $.ajax({
-            url: '<?php echo BASE_URL; ?>modules/pi/send_pi_email.php',
-            type: 'POST',
-            data: {
-                pi_id: piId,
-                email_subject: subject,
-                email_message: message,
-                attach_pdf: 1,
-                attach_excel: 1
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    alert('Email sent successfully');
-                    $('#sharePiModal_' + piId).modal('hide');
-                } else {
-                    alert('Error: ' + response.message);
-                }
-            },
-            error: function() {
-                alert('An error occurred while sending the email');
-            },
-            complete: function() {
-                button.prop('disabled', false).text('Yes');
-            }
-        });
+    $('#piTable').DataTable({
+        dom: '<"row"<"col-sm-6"i><"col-sm-6"p>>rt<"row"<"col-sm-12">>',
+        paging: true,
+        searching: true,
+        ordering: true,
+        lengthChange: false,
+        pageLength: 10
     });
 });
 </script>
