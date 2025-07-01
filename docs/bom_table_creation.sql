@@ -1,0 +1,22 @@
+CREATE TABLE bom_main (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    bom_number VARCHAR(50) NOT NULL UNIQUE,
+    client_name VARCHAR(255) NOT NULL,
+    prepared_by VARCHAR(255) NOT NULL,
+    order_date DATE NOT NULL,
+    delivery_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE bom_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    bom_id INT NOT NULL,
+    product_name VARCHAR(255) NOT NULL,
+    product_code VARCHAR(100) NOT NULL,
+    quantity DECIMAL(10,2) NOT NULL,
+    unit VARCHAR(50) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    total_amount DECIMAL(12,2) NOT NULL,
+    FOREIGN KEY (bom_id) REFERENCES bom_main(id) ON DELETE CASCADE
+);

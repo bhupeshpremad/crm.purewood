@@ -9,7 +9,15 @@
         <div class="sidebar-brand-icon rotate-n-15">
             <i class="fas fa-laugh-wink"></i>
         </div>
-        <div class="sidebar-brand-text mx-3">SB Admin <sup>2</sup></div>
+        <div class="sidebar-brand-text mx-3">
+            <?php
+            $username = $_SESSION['username'] ?? null;
+            echo 'Super Admin';
+            if ($username) {
+                echo ' - ' . htmlspecialchars($username);
+            }
+            ?>
+        </div>
     </a>
 
     <hr class="sidebar-divider my-0">
@@ -81,6 +89,52 @@
     <div class="sidebar-heading">
         Accounts
     </div>
+
+    <li class="nav-item">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseBOM" aria-expanded="false" aria-controls="collapseBOM">
+            <i class="fas fa-fw fa-cubes"></i> <span>Bill Of Material</span>
+        </a>
+        <div id="collapseBOM" class="collapse" aria-labelledby="headingBOM" data-parent="#accordionSidebar">
+            <div class="bg-white py-2 collapse-inner rounded">
+<a class="collapse-item" href="<?php echo BASE_URL; ?>superadmin/accounts/bom/add.php">Add BOM</a>
+<a class="collapse-item" href="<?php echo BASE_URL; ?>superadmin/accounts/bom/index.php">View BOM</a>
+            </div>
+        </div>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePO" aria-expanded="false" aria-controls="collapsePO">
+            <i class="fas fa-fw fa-file-alt"></i> <span>PO</span>
+        </a>
+        <div id="collapsePO" class="collapse" aria-labelledby="headingPO" data-parent="#accordionSidebar">
+            <div class="bg-white py-2 collapse-inner rounded">
+                <a class="collapse-item" href="<?php echo BASE_URL; ?>superadmin/accounts/po/add.php">Add PO</a>
+                <a class="collapse-item" href="<?php echo BASE_URL; ?>superadmin/accounts/po/index.php">View PO</a>
+            </div>
+        </div>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseSE" aria-expanded="false" aria-controls="collapseSE">
+            <i class="fas fa-fw fa-shopping-cart"></i> <span>Sale Order</span>
+        </a>
+        <div id="collapseSE" class="collapse" aria-labelledby="headingPO" data-parent="#accordionSidebar">
+            <div class="bg-white py-2 collapse-inner rounded">
+                <a class="collapse-item" href="<?php echo BASE_URL; ?>superadmin/accounts/so/index.php">View Sale Order</a>
+            </div>
+        </div>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseJCI" aria-expanded="false" aria-controls="collapseJCI">
+            <i class="fas fa-fw fa-file-signature"></i> <span>JCI</span>
+        </a>
+        <div id="collapseJCI" class="collapse" aria-labelledby="headingPO" data-parent="#accordionSidebar">
+            <div class="bg-white py-2 collapse-inner rounded">
+                <a class="collapse-item" href="<?php echo BASE_URL; ?>superadmin/accounts/jci/add.php">Add JCI</a>
+                <a class="collapse-item" href="<?php echo BASE_URL; ?>superadmin/accounts/jci/index.php">View JCI</a>
+            </div>
+        </div>
+    </li>
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseAccounts" aria-expanded="true" aria-controls="collapseAccounts">
             <i class="fas fa-fw fa-file-invoice-dollar"></i> <span>Purchase</span>
@@ -92,6 +146,11 @@
             </div>
         </div>
     </li>
+
+    <!-- <div class="sidebar-heading">
+        PO
+    </div> -->
+    
 
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePayment" aria-expanded="true" aria-controls="collapsePayment">

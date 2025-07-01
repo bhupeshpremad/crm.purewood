@@ -51,7 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Delete existing related records
             $conn->prepare("DELETE FROM job_cards WHERE payment_id = ?")->execute([$payment_id]);
-            $conn->prepare("DELETE FROM supplier_items WHERE supplier_id IN (SELECT id FROM suppliers WHERE payment_id = ?)")->execute([$payment_id]);
+            // Fix deletion of supplier_items by joining with suppliers table to get supplier ids for the payment
+            $conn->prepare("DELETE supplier_items FROM supplier_items INNER JOIN suppliers ON supplier_items.supplier_id = suppliers.id WHERE suppliers.payment_id = ?")->execute([$payment_id]);
             $conn->prepare("DELETE FROM suppliers WHERE payment_id = ?")->execute([$payment_id]);
             $conn->prepare("DELETE FROM payment_details WHERE payment_id = ?")->execute([$payment_id]);
 
@@ -67,14 +68,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Insert job cards
-        $stmt_job_card = $conn->prepare("INSERT INTO job_cards (payment_id, jc_number, jc_amt) VALUES (?, ?, ?)");
+        $stmt_job_card = $conn->prepare("INSERT INTO job_cards (payment_id, jc_number, jc_type, contracture_name, labour_cost, quantity, total_amount, jc_amt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         foreach ($job_cards as $job_card) {
             $jc_number = htmlspecialchars(trim($job_card['jc_number'] ?? ''));
+            $jc_type = htmlspecialchars(trim($job_card['jc_type'] ?? ''));
+            $contracture_name = htmlspecialchars(trim($job_card['contracture_name'] ?? ''));
+            $labour_cost = filter_var($job_card['labour_cost'] ?? 0, FILTER_VALIDATE_FLOAT);
+            $quantity = filter_var($job_card['quantity'] ?? 0, FILTER_VALIDATE_INT);
+            $total_amount = filter_var($job_card['total_amount'] ?? 0, FILTER_VALIDATE_FLOAT);
             $jc_amt = filter_var($job_card['jc_amt'] ?? 0, FILTER_VALIDATE_FLOAT);
             if (empty($jc_number) || $jc_amt === false) {
                 continue;
             }
-            $stmt_job_card->execute([$payment_id, $jc_number, $jc_amt]);
+            $stmt_job_card->execute([$payment_id, $jc_number, $jc_type, $contracture_name, $labour_cost, $quantity, $total_amount, $jc_amt]);
         }
 
         // Insert suppliers and supplier items
@@ -94,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!empty($supplier['items']) && is_array($supplier['items'])) {
                 foreach ($supplier['items'] as $item) {
                     $item_name = htmlspecialchars(trim($item['name'] ?? ''));
-                    $item_quantity = filter_var($item['quantity'] ?? 0, FILTER_VALIDATE_INT);
+                    $item_quantity = filter_var($item['quantity'] ?? 0, FILTER_VALIDATE_FLOAT);
                     $item_price = filter_var($item['price'] ?? 0, FILTER_VALIDATE_FLOAT);
                     $item_amount = filter_var($item['amount'] ?? 0, FILTER_VALIDATE_FLOAT);
                     if (empty($item_name) || $item_quantity === false || $item_price === false || $item_amount === false) {
@@ -106,21 +112,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Insert payment details
-    $stmt_payment_detail = $conn->prepare("INSERT INTO payment_details (payment_id, payment_category, payment_type, cheque_number, pd_acc_number, payment_full_partial, ptm_amount, payment_invoice_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    foreach ($payments as $payment) {
-        $payment_category = $payment['payment_category'] ?? 'Job Card';
-        $payment_type = htmlspecialchars(trim($payment['payment_type'] ?? ''));
-        $cheque_number = htmlspecialchars(trim($payment['cheque_number'] ?? ''));
-        $pd_acc_number = htmlspecialchars(trim($payment['pd_acc_number'] ?? ''));
-        $payment_full_partial = $payment['payment_full_partial'] ?? '';
-        $ptm_amount = filter_var($payment['ptm_amount'] ?? 0, FILTER_VALIDATE_FLOAT);
-        $payment_invoice_date = $payment['payment_invoice_date'] ?? '';
+$stmt_payment_detail = $conn->prepare("INSERT INTO payment_details (payment_id, payment_category, payment_type, cheque_number, pd_acc_number, payment_full_partial, ptm_amount, cgst_percentage, cgst_amount, sgst_percentage, sgst_amount, igst_percentage, igst_amount, payment_invoice_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+foreach ($payments as $payment) {
+    $payment_category = $payment['payment_category'] ?? 'Job Card';
+    $payment_type = htmlspecialchars(trim($payment['payment_type'] ?? ''));
+    $cheque_number = htmlspecialchars(trim($payment['cheque_number'] ?? ''));
+    $pd_acc_number = htmlspecialchars(trim($payment['pd_acc_number'] ?? ''));
+    $payment_full_partial = $payment['payment_full_partial'] ?? '';
+    $ptm_amount = filter_var($payment['ptm_amount'] ?? 0, FILTER_VALIDATE_FLOAT);
+    $cgst_percentage = filter_var($payment['cgst_percentage'] ?? 0, FILTER_VALIDATE_FLOAT);
+    $cgst_amount = filter_var($payment['cgst_amount'] ?? 0, FILTER_VALIDATE_FLOAT);
+    $sgst_percentage = filter_var($payment['sgst_percentage'] ?? 0, FILTER_VALIDATE_FLOAT);
+    $sgst_amount = filter_var($payment['sgst_amount'] ?? 0, FILTER_VALIDATE_FLOAT);
+    $igst_percentage = filter_var($payment['igst_percentage'] ?? 0, FILTER_VALIDATE_FLOAT);
+    $igst_amount = filter_var($payment['igst_amount'] ?? 0, FILTER_VALIDATE_FLOAT);
+    $payment_invoice_date = $payment['payment_invoice_date'] ?? '';
 
-        if (empty($payment_type) || empty($pd_acc_number) || empty($payment_full_partial) || $ptm_amount === false || empty($payment_invoice_date)) {
-            continue;
-        }
-        $stmt_payment_detail->execute([$payment_id, $payment_category, $payment_type, $cheque_number, $pd_acc_number, $payment_full_partial, $ptm_amount, $payment_invoice_date]);
+    if (empty($payment_type) || empty($pd_acc_number) || empty($payment_full_partial) || $ptm_amount === false || empty($payment_invoice_date)) {
+        continue;
     }
+    $stmt_payment_detail->execute([$payment_id, $payment_category, $payment_type, $cheque_number, $pd_acc_number, $payment_full_partial, $ptm_amount, $cgst_percentage, $cgst_amount, $sgst_percentage, $sgst_amount, $igst_percentage, $igst_amount, $payment_invoice_date]);
+}
 
         $conn->commit();
 
@@ -130,6 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } catch (Exception $e) {
         $conn->rollBack();
+        error_log('Error saving payment: ' . $e->getMessage());
         $response['message'] = 'Error saving payment: ' . $e->getMessage();
     }
 }

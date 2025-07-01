@@ -19,7 +19,7 @@ if (isset($_GET['payment_id'])) {
         }
 
         // Fetch job cards
-        $stmt_job_cards = $conn->prepare("SELECT jc_number, jc_amt FROM job_cards WHERE payment_id = ?");
+        $stmt_job_cards = $conn->prepare("SELECT jc_number, jc_type, contracture_name, labour_cost, quantity, total_amount, jc_amt FROM job_cards WHERE payment_id = ?");
         $stmt_job_cards->execute([$payment_id]);
         $job_cards = $stmt_job_cards->fetchAll(PDO::FETCH_ASSOC);
 
@@ -36,9 +36,9 @@ if (isset($_GET['payment_id'])) {
         }
 
         // Fetch payment details
-        $stmt_payment_details = $conn->prepare("SELECT payment_category, payment_type, cheque_number, pd_acc_number, payment_full_partial, ptm_amount, payment_invoice_date FROM payment_details WHERE payment_id = ?");
-        $stmt_payment_details->execute([$payment_id]);
-        $payment_details = $stmt_payment_details->fetchAll(PDO::FETCH_ASSOC);
+$stmt_payment_details = $conn->prepare("SELECT payment_category, payment_type, cheque_number, pd_acc_number, payment_full_partial, ptm_amount, cgst_percentage, cgst_amount, sgst_percentage, sgst_amount, igst_percentage, igst_amount, payment_invoice_date FROM payment_details WHERE payment_id = ?");
+$stmt_payment_details->execute([$payment_id]);
+$payment_details = $stmt_payment_details->fetchAll(PDO::FETCH_ASSOC);
 
         $response['success'] = true;
         $response['data'] = [

@@ -20,6 +20,13 @@ $purchase_view = '';
 $make_Payment_add = '';
 $make_Payment_view = '';
 
+$bom_add = '';
+$bom_view = '';
+$jci_add = '';
+$jci_view = '';
+$so_add = '';
+$so_view = '';
+
     if ($user_type === 'superadmin') {
         $base_path = 'superadmin';
         $dashboard_link = BASE_URL . $base_path . '/superadmin_dashboard.php';
@@ -30,6 +37,12 @@ $make_Payment_view = '';
         $customer_view = BASE_URL . $base_path . '/sales/customer/index.php';
         $pi_add = BASE_URL . $base_path . '/sales/pi/add.php';
         $pi_view = BASE_URL . $base_path . '/sales/pi/index.php';
+        $bom_add = BASE_URL . $base_path . '/bom/add.php';
+        $bom_view = BASE_URL . $base_path . '/bom/index.php';
+        $jci_add = BASE_URL . $base_path . '/jci/add.php';
+        $jci_view = BASE_URL . $base_path . '/jci/index.php';
+        $so_add = BASE_URL . $base_path . '/accounts/so/add.php';
+        $so_view = BASE_URL . $base_path . '/accounts/so/index.php';
         $purchase_add = BASE_URL . $base_path . '/accounts/purchase/add.php';
         $purchase_view = BASE_URL . $base_path . '/accounts/purchase/index.php';
         $make_Payment_add = BASE_URL . $base_path . '/accounts/make_Payment/add.php';
@@ -71,12 +84,22 @@ $make_Payment_view = '';
         </div>
         <div class="sidebar-brand-text mx-3">
             <?php
+            $username = $_SESSION['username'] ?? null;
             if ($user_type === 'superadmin') {
-                echo 'SB Admin <sup>2</sup>';
+                echo 'Super Admin';
+                if ($username) {
+                    echo ' - ' . htmlspecialchars($username);
+                }
             } elseif ($user_type === 'salesadmin') {
                 echo 'Sales Admin';
+                if ($username) {
+                    echo ' - ' . htmlspecialchars($username);
+                }
             } elseif ($user_type === 'accounts') {
                 echo 'Accounts';
+                if ($username) {
+                    echo ' - ' . htmlspecialchars($username);
+                }
             } else {
                 echo 'Dashboard';
             }
@@ -154,13 +177,25 @@ $make_Payment_view = '';
         </div>
 
         <li class="nav-item">
-            <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePurchase" aria-expanded="true" aria-controls="collapsePurchase">
-                <i class="fas fa-fw fa-bullhorn"></i> <span>Purchase</span>
+            <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseBOM" aria-expanded="true" aria-controls="collapseBOM">
+                <i class="fas fa-fw fa-cubes"></i> <span>Bill Of Material</span>
             </a>
-            <div id="collapsePurchase" class="collapse" aria-labelledby="headingPurchase" data-parent="#accordionSidebar">
+            <div id="collapseBOM" class="collapse" aria-labelledby="headingBOM" data-parent="#accordionSidebar">
                 <div class="bg-white py-2 collapse-inner rounded">
-                    <a class="collapse-item" href="<?php echo $purchase_add; ?>">Add Purchase</a>
-                    <a class="collapse-item" href="<?php echo $purchase_view; ?>">View Purchase</a>
+                    <a class="collapse-item" href="<?php echo $bom_add; ?>">Add BOM</a>
+                    <a class="collapse-item" href="<?php echo $bom_view; ?>">View BOM</a>
+                </div>
+            </div>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePO" aria-expanded="true" aria-controls="collapsePO">
+                <i class="fas fa-fw fa-file-alt"></i> <span>PO Number</span>
+            </a>
+            <div id="collapsePO" class="collapse" aria-labelledby="headingPurchase" data-parent="#accordionSidebar">
+                <div class="bg-white py-2 collapse-inner rounded">
+                    <a class="collapse-item" href="<?php echo $purchase_add; ?>">Add PO</a>
+                    <a class="collapse-item" href="<?php echo $purchase_view; ?>">View PO</a>
                 </div>
             </div>
         </li>
