@@ -81,18 +81,17 @@ try {
         $stmt_delete_items->execute();
     }
 
-    $stmt_insert_item = $conn->prepare("INSERT INTO po_items (po_id, product_code, product_name, item_code, quantity, unit, price, total_amount, created_at, updated_at) VALUES (:po_id, :product_code, :product_name, :item_code, :quantity, :unit, :price, :total_amount, NOW(), NOW())");
+    $stmt_insert_item = $conn->prepare("INSERT INTO po_items (po_id, product_code, product_name, item_code, quantity, price, total_amount, created_at, updated_at) VALUES (:po_id, :product_code, :product_name, :item_code, :quantity, :price, :total_amount, NOW(), NOW())");
 
     foreach ($items_data as $index => $item) {
         $product_code = trim($item['product_code'] ?? '');
         $product_name = trim($item['product_name'] ?? '');
         $item_code = trim($item['item_code'] ?? '');
         $quantity = filter_var($item['quantity'] ?? 0, FILTER_VALIDATE_FLOAT);
-        $unit = trim($item['unit'] ?? '');
         $price = filter_var($item['price'] ?? 0, FILTER_VALIDATE_FLOAT);
         $total_amount = filter_var($item['total_amount'] ?? 0, FILTER_VALIDATE_FLOAT);
 
-        if (empty($product_code) || empty($product_name) || empty($item_code) || $quantity === false || $quantity < 0 || empty($unit) || $price === false || $price < 0 || $total_amount === false || $total_amount < 0) {
+        if (empty($product_code) || empty($product_name) || empty($item_code) || $quantity === false || $quantity < 0 || $price === false || $price < 0 || $total_amount === false || $total_amount < 0) {
             throw new Exception("Invalid item data for row " . ($index + 1) . ". Please check all item fields.");
         }
 
@@ -101,7 +100,6 @@ try {
         $stmt_insert_item->bindValue(':product_name', $product_name);
         $stmt_insert_item->bindValue(':item_code', $item_code);
         $stmt_insert_item->bindValue(':quantity', $quantity);
-        $stmt_insert_item->bindValue(':unit', $unit);
         $stmt_insert_item->bindValue(':price', $price);
         $stmt_insert_item->bindValue(':total_amount', $total_amount);
         $stmt_insert_item->execute();

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 01, 2025 at 01:44 PM
+-- Generation Time: Jul 02, 2025 at 11:04 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -43,7 +43,7 @@ CREATE TABLE `bom_items` (
 --
 
 INSERT INTO `bom_items` (`id`, `bom_id`, `product_name`, `product_code`, `quantity`, `unit`, `price`, `total_amount`) VALUES
-(2, 5, 'item', '01', 10.00, '', 10.00, 100.00);
+(1, 6, 'test', '01', 10.00, '', 100.00, 1000.00);
 
 -- --------------------------------------------------------
 
@@ -68,7 +68,7 @@ CREATE TABLE `bom_main` (
 --
 
 INSERT INTO `bom_main` (`id`, `bom_number`, `costing_sheet_number`, `client_name`, `prepared_by`, `order_date`, `delivery_date`, `created_at`, `updated_at`) VALUES
-(5, 'BOM-2025-0001', 'sheet-001', 'bhupesh2', 'bhupesh2', '2025-06-24', '2025-06-24', '2025-06-24 10:18:12', '2025-06-24 10:18:24');
+(6, 'BOM-2025-0001', '01', 'test', 'test', '2025-07-02', '2025-07-02', '2025-07-02 06:35:44', '2025-07-02 06:35:44');
 
 -- --------------------------------------------------------
 
@@ -79,12 +79,26 @@ INSERT INTO `bom_main` (`id`, `bom_number`, `costing_sheet_number`, `client_name
 CREATE TABLE `jci_items` (
   `id` int(11) NOT NULL,
   `jci_id` int(11) NOT NULL,
-  `contracture_name` varchar(255) NOT NULL,
+  `po_product_id` int(11) DEFAULT NULL,
+  `product_name` varchar(255) DEFAULT NULL,
+  `item_code` varchar(100) DEFAULT NULL,
+  `original_po_quantity` decimal(10,2) DEFAULT NULL,
   `labour_cost` decimal(10,2) NOT NULL,
   `quantity` int(11) NOT NULL,
   `total_amount` decimal(10,2) NOT NULL,
-  `delivery_date` date NOT NULL
+  `delivery_date` date NOT NULL,
+  `job_card_date` date DEFAULT NULL,
+  `job_card_type` enum('Contracture','In-House') DEFAULT NULL,
+  `contracture_name` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `jci_items`
+--
+
+INSERT INTO `jci_items` (`id`, `jci_id`, `po_product_id`, `product_name`, `item_code`, `original_po_quantity`, `labour_cost`, `quantity`, `total_amount`, `delivery_date`, `job_card_date`, `job_card_type`, `contracture_name`) VALUES
+(1, 1, 1, 'test01', 'test01', 100.00, 100.00, 100, 10000.00, '2025-07-28', '2025-07-25', 'Contracture', 'raju'),
+(2, 2, 2, 'test02', 'test02', 100.00, 100.00, 100, 10000.00, '2025-07-29', '2025-07-01', 'In-House', '');
 
 -- --------------------------------------------------------
 
@@ -103,6 +117,14 @@ CREATE TABLE `jci_main` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `sell_order_number` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `jci_main`
+--
+
+INSERT INTO `jci_main` (`id`, `jci_number`, `po_id`, `jci_type`, `created_by`, `jci_date`, `created_at`, `updated_at`, `sell_order_number`) VALUES
+(1, 'JOB-2025-0001-1', 1, 'Contracture', 'test', '2025-07-25', '2025-07-02 06:56:39', '2025-07-02 06:56:39', '001'),
+(2, 'JOB-2025-0001-2', 1, 'In-House', 'test', '2025-07-01', '2025-07-02 06:56:39', '2025-07-02 06:56:39', '001');
 
 -- --------------------------------------------------------
 
@@ -146,17 +168,6 @@ CREATE TABLE `leads` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `leads`
---
-
-INSERT INTO `leads` (`id`, `lead_number`, `entry_date`, `lead_source`, `company_name`, `contact_name`, `contact_phone`, `contact_email`, `country`, `state`, `city`, `created_status`, `approve`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'LEAD-2025-0001', '2025-05-01', 'Live', '90', '90', '90', 'a.90@gmail.com', 'Albania', 'Berat District', 'Bashkia Berat', 'new', 1, 'active', '2025-05-22 13:00:05', '2025-05-22 13:00:21'),
-(2, 'LEAD-2025-0002', '2025-05-29', 'Email ', 'Test Company', 'Test Name', '0987654321', 'premad.bhupesh@gmail.com', 'United States', 'Alaska', 'Akutan', 'new', 1, 'active', '2025-05-29 05:39:03', '2025-05-29 05:45:08'),
-(3, 'LEAD-2025-0003', '2025-06-06', 'io', 'ui', 'ui', 'ui', 'ui@gmail.com', 'Australia', 'Northern Territory', 'Central Desert', 'new', 1, 'active', '2025-06-14 08:21:15', '2025-06-14 08:21:20'),
-(4, 'LEAD-2025-0004', '2025-06-12', 'Email', 'Test', 'TEst NAme', '090909', 'test@gmail.com', 'India', 'Rajasthan', 'Jodhpur', 'new', 1, 'active', '2025-06-14 11:22:53', '2025-06-14 11:23:21'),
-(5, 'LEAD-2025-0005', '2025-06-04', 'Online', 'test2', 'test2', '0909090909', 'test2@gmail.com', 'India', 'Rajasthan', 'Jaipur', 'new', 0, 'active', '2025-06-21 09:12:01', '2025-06-21 09:17:35');
 
 -- --------------------------------------------------------
 
@@ -229,15 +240,6 @@ CREATE TABLE `pi` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `pi`
---
-
-INSERT INTO `pi` (`pi_id`, `quotation_id`, `quotation_number`, `pi_number`, `status`, `inspection`, `date_of_pi_raised`, `sample_approval_date`, `detailed_seller_address`, `created_at`, `updated_at`) VALUES
-(1, 7, 'QUOTE-2025-00007', 'PI-2025-00001', 'Generated', NULL, '2025-06-18', NULL, NULL, '2025-06-18 09:41:29', '2025-06-18 09:41:29'),
-(2, 3, 'QUOTE-2025-00003', 'PI-2025-00002', 'Generated', NULL, '2025-06-18', NULL, NULL, '2025-06-18 09:41:43', '2025-06-18 09:41:43'),
-(3, 10, 'QUOTE-2025-00010', 'PI-2025-00003', 'Generated', NULL, '2025-06-21', NULL, NULL, '2025-06-21 09:13:41', '2025-06-21 09:13:41');
-
 -- --------------------------------------------------------
 
 --
@@ -263,7 +265,10 @@ CREATE TABLE `po_items` (
 --
 
 INSERT INTO `po_items` (`id`, `po_id`, `product_code`, `product_name`, `item_code`, `quantity`, `unit`, `price`, `total_amount`, `created_at`, `updated_at`) VALUES
-(1, 4, 'pro01', 'pro02', '10', 10.00, '10', 100.00, 1000.00, '2025-06-24 15:49:02', '2025-06-24 15:49:02');
+(1, 1, '001', 'test01', 'test01', 100.00, '10', 100.00, 10000.00, '2025-07-02 12:06:37', '2025-07-02 12:06:37'),
+(2, 1, '002', 'test02', 'test02', 100.00, '10', 100.00, 10000.00, '2025-07-02 12:06:37', '2025-07-02 12:06:37'),
+(4, 2, 'test02', 'test02', 'test02', 100.00, '10', 100.00, 10000.00, '2025-07-02 12:52:49', '2025-07-02 12:52:49'),
+(5, 2, 'test03', 'test03', 'test03', 100.00, '10', 100.00, 10000.00, '2025-07-02 12:52:49', '2025-07-02 12:52:49');
 
 -- --------------------------------------------------------
 
@@ -292,7 +297,8 @@ CREATE TABLE `po_main` (
 --
 
 INSERT INTO `po_main` (`id`, `po_number`, `client_name`, `prepared_by`, `order_date`, `delivery_date`, `sell_order_id`, `status`, `is_locked`, `created_at`, `updated_at`, `sell_order_number`, `jci_number`) VALUES
-(4, '001', 'bhupesh', 'bhupesh', '2025-06-24', '2025-06-05', 1, 'Locked', 1, '2025-06-24 10:19:02', '2025-06-24 10:46:45', 'SALE-2025-0001', 'JCI-2025-0001');
+(1, '001', 'test', 'test', '2025-07-01', '2025-07-10', 1, 'Locked', 1, '2025-07-02 06:36:37', '2025-07-02 06:36:53', 'SALE-2025-0001', ''),
+(2, 'test02', 'test02', 'test02', '2025-07-02', '2025-07-18', 2, 'Locked', 1, '2025-07-02 07:22:19', '2025-07-02 07:23:16', 'SALE-2025-0002', '');
 
 -- --------------------------------------------------------
 
@@ -309,13 +315,6 @@ CREATE TABLE `purchase_glow` (
   `purchase_main_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `purchase_glow`
---
-
-INSERT INTO `purchase_glow` (`id`, `glowtype`, `quantity`, `price`, `total`, `purchase_main_id`) VALUES
-(1, 'fevicole', 10.00, 100.00, 1000.00, 11);
-
 -- --------------------------------------------------------
 
 --
@@ -330,13 +329,6 @@ CREATE TABLE `purchase_hardware` (
   `totalprice` decimal(10,2) NOT NULL DEFAULT 0.00,
   `purchase_main_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `purchase_hardware`
---
-
-INSERT INTO `purchase_hardware` (`id`, `itemname`, `quantity`, `price`, `totalprice`, `purchase_main_id`) VALUES
-(1, 'screw', 10.00, 10.00, 100.00, 11);
 
 -- --------------------------------------------------------
 
@@ -353,13 +345,6 @@ CREATE TABLE `purchase_main` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `purchase_main`
---
-
-INSERT INTO `purchase_main` (`id`, `po_main_id`, `sell_order_number`, `jci_number`, `created_at`, `updated_at`) VALUES
-(11, 4, 'SALE-2025-0001', 'JCI-2025-0001', '2025-06-24 11:53:14', '2025-06-24 11:53:14');
-
 -- --------------------------------------------------------
 
 --
@@ -375,13 +360,6 @@ CREATE TABLE `purchase_plynydf` (
   `total` decimal(10,2) NOT NULL DEFAULT 0.00,
   `purchase_main_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `purchase_plynydf`
---
-
-INSERT INTO `purchase_plynydf` (`id`, `quantity`, `width`, `length`, `price`, `total`, `purchase_main_id`) VALUES
-(1, 10.00, 10.00, 10.00, 10.00, 10000.00, 11);
 
 -- --------------------------------------------------------
 
@@ -401,13 +379,6 @@ CREATE TABLE `purchase_wood` (
   `total` decimal(10,2) NOT NULL DEFAULT 0.00,
   `purchase_main_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `purchase_wood`
---
-
-INSERT INTO `purchase_wood` (`id`, `woodtype`, `length_ft`, `width_ft`, `thickness_inch`, `quantity`, `price`, `cft`, `total`, `purchase_main_id`) VALUES
-(3, 'Mango', 10.00, 0.25, 3.00, 10.00, 10.00, 6.25, 62.50, 11);
 
 -- --------------------------------------------------------
 
@@ -431,22 +402,6 @@ CREATE TABLE `quotations` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `quotations`
---
-
-INSERT INTO `quotations` (`id`, `lead_id`, `quotation_date`, `quotation_number`, `customer_name`, `customer_email`, `customer_phone`, `delivery_term`, `terms_of_delivery`, `quotation_image`, `approve`, `locked`, `created_at`, `updated_at`) VALUES
-(1, 1, '2025-05-22', 'QUOTE-2025-00001', '90', 'a.90@gmail.com', '90', '90', '90', NULL, 1, 1, '2025-05-22 13:01:00', '2025-06-02 08:20:21'),
-(2, 1, '2025-05-28', 'QUOTE-2025-00002', '90', 'a.90@gmail.com', '90', '90', '90', NULL, 1, 1, '2025-05-28 13:02:04', '2025-06-02 08:23:45'),
-(3, 2, '2025-05-29', 'QUOTE-2025-00003', 'Test Company', 'premad.bhupesh@gmail.com', '0987654321', '30-70', 'FOB', NULL, 1, 0, '2025-05-29 05:50:02', '2025-06-18 09:41:43'),
-(4, 2, '2025-05-29', 'QUOTE-2025-00004', 'Test Company', 'premad.bhupesh@gmail.com', '0987654321', '09', '09', NULL, 1, 1, '2025-05-29 08:12:22', '2025-06-14 03:59:08'),
-(5, 1, '2025-06-02', 'QUOTE-2025-00005', '90', 'a.90@gmail.com', '90', '78', '78', NULL, 1, 1, '2025-06-02 11:47:40', '2025-06-02 11:49:54'),
-(6, 1, '2025-06-11', 'QUOTE-2025-00006', '90', 'a.90@gmail.com', '90', '67', '67', NULL, 1, 0, '2025-06-11 09:17:46', '2025-06-11 09:18:03'),
-(7, 1, '2025-06-13', 'QUOTE-2025-00007', '90', 'a.90@gmail.com', '90', '90', '90', NULL, 1, 1, '2025-06-13 18:57:16', '2025-06-18 13:31:20'),
-(8, 3, '2025-06-14', 'QUOTE-2025-00008', 'ui', 'ui@gmail.com', 'ui', '70', '30', NULL, 1, 1, '2025-06-14 08:22:34', '2025-06-14 08:23:56'),
-(9, 4, '2025-06-14', 'QUOTE-2025-00009', 'Test', 'test@gmail.com', '090909', '70', '30', NULL, 1, 1, '2025-06-14 11:25:58', '2025-06-14 11:28:33'),
-(10, 5, '2025-06-21', 'QUOTE-2025-00010', 'test2', 'test2@gmail.com', '0909090909', '70%', '30%', NULL, 1, 1, '2025-06-21 09:13:24', '2025-06-21 09:13:50');
 
 -- --------------------------------------------------------
 
@@ -481,13 +436,6 @@ CREATE TABLE `quotation_products` (
   `total_price_usd` decimal(10,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `quotation_products`
---
-
-INSERT INTO `quotation_products` (`id`, `quotation_id`, `item_name`, `item_code`, `description`, `assembly`, `item_h`, `item_w`, `item_d`, `box_h`, `box_w`, `box_d`, `cbm`, `wood_type`, `no_of_packet`, `iron_gauge`, `mdf_finish`, `quantity`, `price_usd`, `comments`, `created_at`, `updated_at`, `product_image_name`, `total_price_usd`) VALUES
-(1, 10, 'test2', 'test2', 'test2', 'yes', 100.00, 100.00, 100.00, 0.00, 0.00, 0.00, 0.000, '100', 100, '100', '100', 100.00, 100.00, '100', '2025-06-21 09:13:24', '2025-06-21 09:13:24', 'product_10_0_1750497204.png', 10000.00);
-
 -- --------------------------------------------------------
 
 --
@@ -502,14 +450,6 @@ CREATE TABLE `quotation_status` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `quotation_status`
---
-
-INSERT INTO `quotation_status` (`id`, `quotation_id`, `status_text`, `status_date`, `created_at`, `updated_at`) VALUES
-(1, 1, 'asd', '2025-06-07', '2025-06-18 09:06:08', '2025-06-18 09:06:08'),
-(2, 10, 'Quotation created', '2025-06-21', '2025-06-21 09:13:24', '2025-06-21 09:13:24');
 
 -- --------------------------------------------------------
 
@@ -530,7 +470,8 @@ CREATE TABLE `sell_order` (
 --
 
 INSERT INTO `sell_order` (`id`, `sell_order_number`, `po_id`, `created_at`, `updated_at`) VALUES
-(1, 'SALE-2025-0001', 4, '2025-06-24 15:49:26', '2025-06-24 15:49:26');
+(1, 'SALE-2025-0001', 1, '2025-07-02 12:06:48', '2025-07-02 12:06:48'),
+(2, 'SALE-2025-0002', 2, '2025-07-02 12:53:12', '2025-07-02 12:53:12');
 
 -- --------------------------------------------------------
 
@@ -546,18 +487,6 @@ CREATE TABLE `status` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `status`
---
-
-INSERT INTO `status` (`id`, `lead_id`, `status_text`, `status_date`, `created_at`, `updated_at`) VALUES
-(1, 1, '90', '2025-05-01', '2025-05-22 13:00:18', '2025-05-22 13:00:18'),
-(2, 2, 'called Customer Send Catlog', '2025-05-29', '2025-05-29 05:41:11', '2025-05-29 05:41:11'),
-(3, 2, 'Catlog Send ', '2025-05-29', '2025-05-29 05:41:49', '2025-05-29 05:41:49'),
-(4, 3, 'asd', '2025-06-10', '2025-06-14 10:54:54', '2025-06-14 10:54:54'),
-(5, 4, 'No record', '2025-06-02', '2025-06-14 11:23:52', '2025-06-14 11:23:52'),
-(6, 5, 'NEW', '2025-06-12', '2025-06-21 09:17:31', '2025-06-21 09:17:31');
 
 -- --------------------------------------------------------
 
@@ -764,25 +693,25 @@ ALTER TABLE `supplier_items`
 -- AUTO_INCREMENT for table `bom_items`
 --
 ALTER TABLE `bom_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `bom_main`
 --
 ALTER TABLE `bom_main`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `jci_items`
 --
 ALTER TABLE `jci_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `jci_main`
 --
 ALTER TABLE `jci_main`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `job_cards`
@@ -794,13 +723,13 @@ ALTER TABLE `job_cards`
 -- AUTO_INCREMENT for table `leads`
 --
 ALTER TABLE `leads`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payment_details`
@@ -812,85 +741,85 @@ ALTER TABLE `payment_details`
 -- AUTO_INCREMENT for table `pi`
 --
 ALTER TABLE `pi`
-  MODIFY `pi_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `pi_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `po_items`
 --
 ALTER TABLE `po_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `po_main`
 --
 ALTER TABLE `po_main`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `purchase_glow`
 --
 ALTER TABLE `purchase_glow`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `purchase_hardware`
 --
 ALTER TABLE `purchase_hardware`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `purchase_main`
 --
 ALTER TABLE `purchase_main`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `purchase_plynydf`
 --
 ALTER TABLE `purchase_plynydf`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `purchase_wood`
 --
 ALTER TABLE `purchase_wood`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `quotations`
 --
 ALTER TABLE `quotations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `quotation_products`
 --
 ALTER TABLE `quotation_products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `quotation_status`
 --
 ALTER TABLE `quotation_status`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `sell_order`
 --
 ALTER TABLE `sell_order`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `status`
 --
 ALTER TABLE `status`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `suppliers`
 --
 ALTER TABLE `suppliers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `supplier_items`
