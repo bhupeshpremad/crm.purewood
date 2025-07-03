@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
+        // Fetches po_number from po_main, which is used as sell_order_number
         $stmt = $conn->prepare("SELECT po_number FROM po_main WHERE id = ?");
         $stmt->execute([$po_id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);

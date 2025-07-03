@@ -87,7 +87,7 @@
     <hr class="sidebar-divider">
 
     <div class="sidebar-heading">
-        Accounts
+        Operations
     </div>
 
     <li class="nav-item">
@@ -135,6 +135,20 @@
             </div>
         </div>
     </li>
+
+
+    <!-- <div class="sidebar-heading">
+        PO
+    </div> -->
+    
+
+
+
+    <hr class="sidebar-divider d-none d-md-block">
+
+    <div class="sidebar-heading">
+        Accounts
+    </div>
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseAccounts" aria-expanded="true" aria-controls="collapseAccounts">
             <i class="fas fa-fw fa-file-invoice-dollar"></i> <span>Purchase</span>
@@ -146,12 +160,6 @@
             </div>
         </div>
     </li>
-
-    <!-- <div class="sidebar-heading">
-        PO
-    </div> -->
-    
-
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePayment" aria-expanded="true" aria-controls="collapsePayment">
             <i class="fas fa-fw fa-file-invoice-dollar"></i> <span>Make Payment</span>
@@ -164,7 +172,7 @@
         </div>
     </li>
 
-    <hr class="sidebar-divider d-none d-md-block">
+
 
     <div class="sidebar-heading">
         Production
@@ -179,6 +187,8 @@
             </div>
         </div>
     </li>
+    <hr class="sidebar-divider d-none d-md-block">
+
 
     <div class="text-center d-none d-md-inline">
         <button class="rounded-circle border-0" id="sidebarToggle"></button>

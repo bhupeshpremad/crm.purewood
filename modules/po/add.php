@@ -8,7 +8,6 @@ if (!defined('ROOT_DIR_PATH')) {
 }
 include_once ROOT_DIR_PATH . 'include/inc/header.php';
 
-
 $user_type = $_SESSION['user_type'] ?? 'guest';
 
 if ($user_type === 'superadmin') {
@@ -19,7 +18,11 @@ if ($user_type === 'superadmin') {
     include_once ROOT_DIR_PATH . 'accountsadmin/sidebar.php';
 }
 
+
+
 global $conn;
+
+
 
 $po_id = $_GET['id'] ?? null;
 $po_data = null;
@@ -102,21 +105,17 @@ if ($po_id) {
                                     <label class="form-label">Quantity</label>
                                     <input type="number" step="0.01" class="form-control quantity" name="items[0][quantity]" value="0" required>
                                 </div>
-                                <div class="col-md-1">
-                                    <label class="form-label">Unit</label>
-                                    <input type="text" class="form-control unit" name="items[0][unit]" required>
-                                </div>
-                                <div class="col-md-1">
-                                    <label class="form-label">Price</label>
-                                    <input type="number" step="0.01" class="form-control price" name="items[0][price]" value="0" required>
-                                </div>
-                                <div class="col-md-1">
-                                    <label class="form-label">Total</label>
-                                    <input type="number" step="0.01" class="form-control total_amount" name="items[0][total_amount]" value="0" readonly>
-                                </div>
-                                <div class="col-md-1 d-flex align-items-end">
-                                    <button type="button" class="btn btn-danger remove-item-btn">Remove</button>
-                                </div>
+                            <div class="col-md-1">
+                                <label class="form-label">Price</label>
+                                <input type="number" step="0.01" class="form-control price" name="items[0][price]" value="0" required>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">Total</label>
+                                <input type="number" step="0.01" class="form-control total_amount" name="items[0][total_amount]" value="0" readonly>
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                <button type="button" class="btn btn-danger remove-item-btn">Remove</button>
+                            </div>
                             </div>
                         <?php else: ?>
                             <?php foreach ($po_items as $index => $item): ?>
@@ -136,10 +135,6 @@ if ($po_id) {
                                     <div class="col-md-1">
                                         <label class="form-label">Quantity</label>
                                         <input type="number" step="0.01" class="form-control quantity" name="items[<?php echo $index; ?>][quantity]" value="<?php echo htmlspecialchars($item['quantity'] ?? '0'); ?>" required>
-                                    </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Unit</label>
-                                        <input type="text" class="form-control unit" name="items[<?php echo $index; ?>][unit]" required>
                                     </div>
                                     <div class="col-md-1">
                                         <label class="form-label">Price</label>
@@ -213,10 +208,6 @@ $(document).ready(function() {
                     <input type="number" step="0.01" class="form-control quantity" name="items[${itemIndex}][quantity]" value="0" required>
                 </div>
                 <div class="col-md-1">
-                    <label class="form-label">Unit</label>
-                    <input type="text" class="form-control unit" name="items[${itemIndex}][unit]" required>
-                </div>
-                <div class="col-md-1">
                     <label class="form-label">Price</label>
                     <input type="number" step="0.01" class="form-control price" name="items[${itemIndex}][price]" value="0" required>
                 </div>
@@ -259,6 +250,15 @@ $(document).ready(function() {
                         setTimeout(() => {
                             window.location.href = 'add.php?id=' + response.po_id;
                         }, 1000);
+                    } else {
+                        // Reset the form for existing PO after successful save
+                        $('#poForm')[0].reset();
+                        // Reset itemIndex and recalculate totals if needed
+                        itemIndex = 1;
+                        $('.po-item-row').each(function() {
+                            let row = $(this);
+                            row.find('.total_amount').val('0.00');
+                        });
                     }
                 } else {
                     toastr.error(response.message);
