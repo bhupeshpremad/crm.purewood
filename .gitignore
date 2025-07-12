@@ -1,0 +1,28 @@
+# Ignore sensitive files
+config/config.php
+
+# Ignore log files
+*.log
+*_error.log
+
+# Ignore temporary files
+temp/
+*.tmp
+*.cache
+
+# Ignore uploads (optional - comment out if you want to include uploads)
+assets/images/upload/
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore backup files
+*.bak
+*~
