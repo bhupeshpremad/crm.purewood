@@ -98,8 +98,8 @@ if ($edit_mode && !empty($jci_data)) {
 $jci_main_date = $edit_mode ? ($jci_data['jci_date'] ?? date('Y-m-d')) : date('Y-m-d');
 $jci_main_type = $edit_mode ? ($jci_data['jci_type'] ?? 'Internal') : 'Internal'; // Default to Internal
 
-// Fetch only sell orders without JCI created
-$stmt_sell_order = $conn->prepare("SELECT so.id, so.sell_order_number, po.po_number, po.client_name FROM sell_order so JOIN po_main po ON so.po_id = po.id WHERE po.status = 'Locked' AND po.is_locked = 1 AND so.jci_created = 0 ORDER BY so.sell_order_number ASC");
+/* Temporarily relax sell order query conditions to debug dropdown population */
+$stmt_sell_order = $conn->prepare("SELECT so.id, so.sell_order_number, po.po_number, po.client_name FROM sell_order so JOIN po_main po ON so.po_id = po.id ORDER BY so.sell_order_number ASC");
 $stmt_sell_order->execute();
 $sell_orders = $stmt_sell_order->fetchAll(PDO::FETCH_ASSOC);
 
@@ -536,57 +536,57 @@ $(document).ready(function() {
         });
     }
 
-    $('#sell_order_id').on('change', function(e) {
-        var sellOrderId = $(this).val();
-        var selectedOption = $(this).find(':selected');
-        poProducts = [];
-        $('#itemsTable tbody').empty();
-        rowCount = 0;
-        calculateGrandTotal();
+$('#sell_order_id').on('change', function(e) {
+    var sellOrderId = $(this).val();
+    var selectedOption = $(this).find(':selected');
+    poProducts = [];
+    $('#itemsTable tbody').empty();
+    rowCount = 0;
+    calculateGrandTotal();
 
-        console.log('Sell Order Changed:', sellOrderId);
+    console.log('Sell Order Changed:', sellOrderId);
 
-        if (sellOrderId) {
-            // Set sell order number and PO number from dropdown data
-            var sellOrderText = selectedOption.text();
-            var sellOrderNumber = sellOrderText.split(' (')[0];
-            var poNumber = selectedOption.attr('data-po-number') || '';
-            
-            console.log('Selected SO:', sellOrderNumber, 'PO:', poNumber);
-            
-            $('#sell_order_number').val(sellOrderNumber);
-            $('#po_number_display').val(poNumber);
-            $('#po_number').val(poNumber);
-            
-            
-            // Fetch PO products directly using sell order ID
-            $.ajax({
-                url: '<?php echo BASE_URL; ?>modules/jci/ajax_fetch_po_products.php',
-                type: 'POST', 
-                data: { sell_order_id: sellOrderId },
-                dataType: 'json',
-                success: function(productResponse) {
-                    console.log('Products Response:', productResponse);
-                    if (productResponse.success && productResponse.products.length > 0) {
-                        poProducts = productResponse.products;
-                        // Don't add row automatically
-                    } else {
-                        console.log('No products found');
-                        alert('No products found for the selected Sale Order.');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Products fetch error:', status, error, xhr.responseText);
-                    alert('Error fetching products.');
+    if (sellOrderId) {
+        // Set sell order number and PO number from dropdown data
+        var sellOrderText = selectedOption.text();
+        var sellOrderNumber = sellOrderText.split(' (')[0];
+        var poNumber = selectedOption.attr('data-po-number') || '';
+        
+        console.log('Selected SO:', sellOrderNumber, 'PO:', poNumber);
+        
+        $('#sell_order_number').val(sellOrderNumber);
+        $('#po_number_display').val(poNumber);
+        $('#po_number').val(poNumber);
+        
+        
+        // Fetch PO products directly using sell order ID
+        $.ajax({
+            url: '<?php echo BASE_URL; ?>modules/jci/ajax_fetch_po_products.php',
+            type: 'POST', 
+            data: { sell_order_id: sellOrderId },
+            dataType: 'json',
+            success: function(productResponse) {
+                console.log('Products Response:', productResponse);
+                if (productResponse.success && productResponse.products.length > 0) {
+                    poProducts = productResponse.products;
+                    // Don't add row automatically
+                } else {
+                    console.log('No products found');
+                    alert('No products found for the selected Sale Order.');
                 }
-            });
-        } else {
-            $('#sell_order_number').val('');
-            $('#po_number_display').val('');
-            $('#po_number').val('');
-            // Row will be added manually by clicking Add Row button
-        }
-    });
+            },
+            error: function(xhr, status, error) {
+                console.error('Products fetch error:', status, error, xhr.responseText);
+                alert('Error fetching products.');
+            }
+        });
+    } else {
+        $('#sell_order_number').val('');
+        $('#po_number_display').val('');
+        $('#po_number').val('');
+        // Row will be added manually by clicking Add Row button
+    }
+});
     
     // Also handle select2 events
     $('#sell_order_id').on('select2:select', function(e) {
