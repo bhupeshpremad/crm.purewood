@@ -103,6 +103,12 @@ $stmt_sell_order = $conn->prepare("SELECT so.id, so.sell_order_number, po.po_num
 $stmt_sell_order->execute();
 $sell_orders = $stmt_sell_order->fetchAll(PDO::FETCH_ASSOC);
 
+// Debug output for sell orders count and numbers
+error_log("Sell orders count: " . count($sell_orders));
+foreach ($sell_orders as $so) {
+    error_log("Sell order: " . $so['sell_order_number']);
+}
+
 // For edit mode, include current sell order
 if ($edit_mode && !empty($jci_data['sell_order_number'])) {
     $stmt_current = $conn->prepare("SELECT so.id, so.sell_order_number, po.po_number, po.client_name FROM sell_order so JOIN po_main po ON so.po_id = po.id WHERE so.sell_order_number = ?");
