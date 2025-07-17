@@ -347,7 +347,7 @@ if (!$conn instanceof PDO) {
 
             // Fetch latest quotation number via AJAX when lead changes
             $.ajax({
-                url: '/php_erp/modules/quotation/get_latest_quotation_number.php',
+                url: '<?php echo BASE_URL; ?>modules/quotation/get_latest_quotation_number.php',
                 type: 'GET',
                 dataType: 'json',
                 success: function(data) {
@@ -628,7 +628,7 @@ if (!$conn instanceof PDO) {
             });
 
             $.ajax({
-                url: '/php_erp/modules/quotation/store.php',
+                url: '<?php echo BASE_URL; ?>modules/quotation/store.php',
                 type: 'POST',
                 data: formData,
                 processData: false,
