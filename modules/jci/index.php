@@ -186,7 +186,10 @@ $(document).ready(function() {
                             <td>${item.job_card_date || 'N/A'}</td>
                             <td>${item.job_card_type || 'N/A'}</td>
                             <td>${item.contracture_name || 'N/A'}</td>
-                            <td><button class="btn btn-sm btn-primary" onclick="printJobCard('${item.job_card_number}', '${jciNumber}')">Print</button></td>`;
+<td>
+    <a href="<?php echo BASE_URL; ?>modules/jci/download_job_card_pdf.php?job_card_number=${jciNumber}" class="btn btn-sm btn-success" target="_blank" style="margin-left: 5px;">Download PDF</a>
+</td>
+                        `;
                         tbody.appendChild(tr);
                     });
                 } else {
