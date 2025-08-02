@@ -18,7 +18,8 @@ if (isset($_GET['payment_id'])) {
     $payment_id = intval($_GET['payment_id']);
 
     try {
-        $stmt = $conn->prepare("SELECT item_name, item_quantity, item_price, item_amount FROM payment_items WHERE payment_id = ?");
+        // Get payment details instead of payment_items (table doesn't exist)
+        $stmt = $conn->prepare("SELECT payment_category as item_name, ptm_amount as item_amount, payment_type, cheque_number FROM payment_details WHERE payment_id = ?");
         $stmt->execute([$payment_id]);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

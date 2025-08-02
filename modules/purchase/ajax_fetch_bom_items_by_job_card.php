@@ -37,7 +37,7 @@ try {
     $bom_hardware_data = $stmt_hardware->fetchAll(PDO::FETCH_ASSOC);
 
     $bom_plynydf_data = [];
-    $stmt_plynydf = $conn->prepare("SELECT 'Plynydf' as product_type, '' as product_name, quantity, price FROM bom_plynydf WHERE bom_main_id = ?");
+    $stmt_plynydf = $conn->prepare("SELECT 'Plynydf' as product_type, 'Plynydf' as product_name, quantity, price FROM bom_plynydf WHERE bom_main_id = ?");
     $stmt_plynydf->execute([$bom_id]);
     $bom_plynydf_data = $stmt_plynydf->fetchAll(PDO::FETCH_ASSOC);
 

@@ -3,197 +3,226 @@ include_once __DIR__ . '/../config/config.php';
 session_start();
 $user_type = $_SESSION['user_type'] ?? 'guest';
 
-// Include header and sidebar
 include_once ROOT_DIR_PATH . 'include/inc/header.php';
 include_once ROOT_DIR_PATH . 'accountsadmin/sidebar.php';
 
-// Database connection
 global $conn;
 
-// Function to check module access for accountsadmin
 function has_module_access($module) {
     global $user_type;
-    $accounts_modules = [
-        'purchase', 'make_payment'
-    ];
-    if ($user_type === 'accounts' && in_array($module, $accounts_modules)) {
-        return true;
-    }
-    return false;
+    $accounts_modules = ['purchase', 'make_payment'];
+    return $user_type === 'accounts' && in_array($module, $accounts_modules);
 }
 
-// Fetch dynamic data for dashboard cards
-$earnings_monthly = 0;
-$earnings_annual = 0;
-$tasks_percent = 0;
-$pending_requests = 0;
+$module_data = [];
 
 if (has_module_access('purchase')) {
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM po_main WHERE MONTH(created_at) = MONTH(CURRENT_DATE())");
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM purchase_main");
     $stmt->execute();
-    $purchase_monthly = $stmt->fetchColumn();
-    $earnings_monthly += $purchase_monthly ?? 0;
+    $total = (int)$stmt->fetchColumn();
+    $module_data['purchase'] = ['total' => $total, 'pending' => 0, 'completed' => 0];
+} else {
+    $module_data['purchase'] = ['total' => 0, 'pending' => 0, 'completed' => 0];
 }
 
 if (has_module_access('make_payment')) {
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM payments WHERE YEAR(created_at) = YEAR(CURRENT_DATE())");
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM payments");
     $stmt->execute();
-    $payments_annual = $stmt->fetchColumn();
-    $earnings_annual += $payments_annual ?? 0;
+    $total = (int)$stmt->fetchColumn();
+    $module_data['make_payment'] = ['total' => $total, 'pending' => 0, 'completed' => 0];
+} else {
+    $module_data['make_payment'] = ['total' => 0, 'pending' => 0, 'completed' => 0];
 }
-
-$tasks_percent = 50;
-$pending_requests = 18;
 ?>
 
 <body id="page-top">
-
-    <div id="wrapper">
-
+    <div id="wrapper" class="container-fluid">
         <div id="content-wrapper" class="d-flex flex-column">
-
             <div id="content">
-
                 <?php include_once ROOT_DIR_PATH . 'include/inc/topbar.php'; ?>
-
                 <div class="container-fluid">
-
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
-                        <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i
-                                class="fas fa-download fa-sm text-white-50"></i> Generate Report</a>
+                        <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                            <i class="fas fa-download fa-sm text-white-50"></i> Generate Report
+                        </a>
                     </div>
 
                     <div class="row">
+                        <div class="col-xl-6 col-lg-6">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Module Overview (Line Chart)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div style="position: relative; height: 350px;">
+                                        <canvas id="moduleLineChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-6 col-lg-6">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Module Totals (Pie Chart)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div style="position: relative; height: 350px;">
+                                        <canvas id="modulePieChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                        <?php if (has_module_access('purchase')): ?>
+                    <div class="row">
+                        <?php foreach ($module_data as $module => $counts): ?>
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-primary shadow h-100 py-2">
                                 <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                                Earnings (Monthly)</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">$<?php echo number_format($earnings_monthly, 2); ?></div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
-                                        </div>
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        <?php echo ucfirst(str_replace('_', ' ', $module)); ?>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <tbody>
+                                                <tr><td>Total</td><td class="text-end"><?php echo $counts['total']; ?></td></tr>
+                                                <tr><td>Pending</td><td class="text-end"><?php echo $counts['pending']; ?></td></tr>
+                                                <tr><td>Completed</td><td class="text-end"><?php echo $counts['completed']; ?></td></tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <?php endif; ?>
-
-                        <?php if (has_module_access('make_payment')): ?>
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-success shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                                Earnings (Annual)</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">$<?php echo number_format($earnings_annual, 2); ?></div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-info shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tasks
-                                            </div>
-                                            <div class="row no-gutters align-items-center">
-                                                <div class="col-auto">
-                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800"><?php echo $tasks_percent; ?>%</div>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="progress progress-sm mr-2">
-                                                        <div class="progress-bar bg-info" role="progressbar"
-                                                            style="width: <?php echo $tasks_percent; ?>%" aria-valuenow="<?php echo $tasks_percent; ?>" aria-valuemin="0"
-                                                            aria-valuemax="100"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-warning shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                                Pending Requests</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $pending_requests; ?></div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-comments fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
-
-                    <div class="row">
-                        <div class="col-xl-8 col-lg-7">
-                            <div class="card shadow mb-4">
-                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                    <h6 class="m-0 font-weight-bold text-primary">Module Reports Overview</h6>
-                                </div>
-                                <div class="card-body">
-                                    <canvas id="moduleReportChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
-
             </div>
-
+            <?php include_once ROOT_DIR_PATH . 'include/inc/footer-top.php'; ?>
+            <?php include_once ROOT_DIR_PATH . 'include/inc/footer.php'; ?>
         </div>
-
     </div>
 
-    <?php include_once ROOT_DIR_PATH . 'include/inc/footer-top.php'; ?>
-
-    <?php include_once ROOT_DIR_PATH . 'include/inc/footer.php'; ?>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
     <script>
-        const ctx = document.getElementById('moduleReportChart').getContext('2d');
-        const moduleReportChart = new Chart(ctx, {
+        const moduleLabels = <?php echo json_encode(array_map(function($m) { return ucfirst(str_replace('_', ' ', $m)); }, array_keys($module_data))); ?>;
+        const totalData = <?php echo json_encode(array_column($module_data, 'total')); ?>;
+        const pendingData = <?php echo json_encode(array_column($module_data, 'pending')); ?>;
+        const completedData = <?php echo json_encode(array_column($module_data, 'completed')); ?>;
+
+        const ctxLine = document.getElementById('moduleLineChart').getContext('2d');
+        new Chart(ctxLine, {
             type: 'line',
             data: {
-                labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+                labels: moduleLabels,
+                datasets: [
+                    {
+                        label: 'Total',
+                        data: totalData,
+                        borderColor: 'rgba(78, 115, 223, 1)',
+                        backgroundColor: 'rgba(78, 115, 223, 0.2)',
+                        fill: false,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Pending',
+                        data: pendingData,
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                        fill: false,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Completed',
+                        data: completedData,
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                        fill: false,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+
+        const ctxPie = document.getElementById('modulePieChart').getContext('2d');
+        new Chart(ctxPie, {
+            type: 'pie',
+            data: {
+                labels: moduleLabels,
                 datasets: [{
-                    label: 'Module Report',
-                    data: [12, 19, 3, 5, 2, 3, 7],
-                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
-                    borderColor: 'rgba(78, 115, 223, 1)',
-                    borderWidth: 2
+                    data: totalData,
+                    backgroundColor: [
+                        'rgba(78, 115, 223, 0.7)',
+                        'rgba(255, 193, 7, 0.7)',
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(220, 53, 69, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(78, 115, 223, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(220, 53, 69, 1)'
+                    ],
+                    borderWidth: 1
                 }]
             },
             options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        return {
+                                            text: `${label}: ${value}`,
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            strokeStyle: data.datasets[0].borderColor[i],
+                                            lineWidth: 1,
+                                            hidden: value === 0,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.label}: ${context.parsed}`;
+                            }
+                        }
                     }
                 }
             }
