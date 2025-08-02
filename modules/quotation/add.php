@@ -11,15 +11,12 @@ if ($user_type === 'superadmin') {
     include_once __DIR__ . '/../../superadmin/sidebar.php';
 } elseif ($user_type === 'salesadmin') {
     include_once __DIR__ . '/../../salesadmin/sidebar.php';
-} else {
-    // Default or guest sidebar or no sidebar
-    // include_once __DIR__ . '/../../include/inc/sidebar.php';
 }
 
 $editMode = false;
 $quotation = null;
 $products = [];
-$error = null; // Initialize error variable
+$error = null;
 
 $disableLeadDropdown = false;
 $selectedLeadId = null;
@@ -30,10 +27,9 @@ if (isset($_GET['lead_id']) && is_numeric($_GET['lead_id'])) {
 
 global $conn;
 
-// Essential: Check if $conn is a valid PDO object before proceeding
 if (!$conn instanceof PDO) {
     $error = 'Database connection not established. Check config.php.';
-    $approvedLeads = []; // Ensure approvedLeads is initialized even on connection failure
+    $approvedLeads = [];
 } else {
     try {
         if (isset($_GET['id']) && is_numeric($_GET['id'])) {
@@ -41,36 +37,24 @@ if (!$conn instanceof PDO) {
             $quotationId = intval($_GET['id']);
 
             $stmt = $conn->prepare("SELECT * FROM quotations WHERE id = :id");
-            if ($stmt === false) {
-                throw new Exception('Failed to prepare statement for fetching quotation.');
-            }
             $stmt->execute([':id' => $quotationId]);
             $quotation = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($quotation) {
                 $stmt2 = $conn->prepare("SELECT * FROM quotation_products WHERE quotation_id = :id");
-                if ($stmt2 === false) {
-                    throw new Exception('Failed to prepare statement for fetching quotation products.');
-                }
                 $stmt2->execute([':id' => $quotationId]);
-                $products = $stmt2->fetchAll(PDO::FETCH_ASSOC); // This will now be called on a PDOStatement object
+                $products = $stmt2->fetchAll(PDO::FETCH_ASSOC);
             } else {
                 $error = "Quotation not found.";
             }
         }
 
         $stmt = $conn->prepare("SELECT * FROM leads WHERE approve = 1 ORDER BY lead_number ASC");
-        if ($stmt === false) {
-            throw new Exception('Failed to prepare statement for fetching approved leads.');
-        }
         $stmt->execute();
-        $approvedLeads = $stmt->fetchAll(PDO::FETCH_ASSOC); // This will now be called on a PDOStatement object
+        $approvedLeads = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         $approvedLeads = [];
         $error = "Error fetching data: " . $e->getMessage();
-    } catch (Exception $e) { // Catch the custom exceptions thrown for prepare failures
-        $approvedLeads = [];
-        $error = "Application error: " . $e->getMessage();
     }
 }
 ?>
@@ -149,41 +133,33 @@ if (!$conn instanceof PDO) {
                 </fieldset>
 
                 <div>
-                    <button type="button" class="btn btn-primary mt-3 mb-3" id="addRowBtn">Add Product Row</button>
+                    <input type="file" id="productFileInput" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style="display:none;">
+                    <button type="button" class="btn btn-primary mt-3 mb-3" id="uploadProductsBtn">Upload Products (Excel/CSV)</button>
+                    <div id="csvProcessingMsg" style="display:none; color: #007bff; font-weight: bold; margin-bottom: 10px;">Processing file, please wait...</div>
                     <div class="row">
                         <div class="col-lg-12">
                             <div class="table-responsive" style="overflow-x:auto; max-width: 100%; white-space: nowrap;">
                                 <table id="productTable" class="table table-bordered table-striped table-hover" style="min-width: 1800px;">
                                 <style>
-                                    #productTable input.form-control-sm {
-                                        min-width: 80px;
-                                        width: 100%;
-                                    }
-                                    #productTable td {
-                                        padding: 4px;
-                                        vertical-align: middle;
-                                    }
-                                    #productTable th:nth-child(3), #productTable td:nth-child(3) { min-width: 120px; }
-                                    #productTable th:nth-child(4), #productTable td:nth-child(4) { min-width: 100px; }
+                                    #productTable input.form-control-sm { min-width: 80px; width: 100%; }
+                                    #productTable td { padding: 4px; vertical-align: middle; }
+                                    #productTable th:nth-child(4), #productTable td:nth-child(4) { min-width: 430px; }
                                     #productTable th:nth-child(5), #productTable td:nth-child(5) { min-width: 100px; }
-                                    #productTable th:nth-child(13), #productTable td:nth-child(13) { min-width: 100px; }
-                                    #productTable th:nth-child(20), #productTable td:nth-child(20) { min-width: 120px; }
                                 </style>
                                     <thead>
                                         <tr>
                                             <th>Sno</th>
                                             <th>Product Image</th>
+                                            <th>Preview</th>
                                             <th>Item Name</th>
                                             <th>Item Code</th>
                                             <th>Assembly</th>
-                                            <th colspan="3" class="text-center">Item Dimension (cms)</th>
-                                            <th colspan="3" class="text-center">Box Dimension (cms)</th>
+<th colspan="3" class="text-center">Item Dimension (cms)</th>
+<th colspan="3" class="text-center">Box Dimension (cms)</th>
                                             <th>CBM</th>
                                             <th>Wood/Marble Type</th>
                                             <th>No. of Packet</th>
-                                            <th>Iron Gauge</th>
-                                            <th>MDF Finish</th>
-                                            <th>MOQ</th>
+                                            <th>Quantity</th>
                                             <th>Price USD</th>
                                             <th>Total USD</th>
                                             <th>Comments</th>
@@ -191,9 +167,10 @@ if (!$conn instanceof PDO) {
                                         </tr>
                                         <tr>
                                             <th></th><th></th><th></th><th></th><th></th>
-                                            <th class="small">H</th><th class="small">W</th><th class="small">D</th>
-                                            <th class="small">H</th><th class="small">W</th><th class="small">D</th>
-                                            <th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th>
+                                            <th></th>
+<th class="small">W</th><th class="small">D</th><th class="small">H</th>
+<th class="small">W</th><th class="small">D</th><th class="small">H</th>
+                                            <th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th>
                                         </tr>
                                     </thead>
                                     <tbody id="productTableBody">
@@ -201,24 +178,51 @@ if (!$conn instanceof PDO) {
                                             <?php foreach ($products as $index => $product) : ?>
                                                 <tr>
                                                     <td><?php echo $index + 1; ?></td>
-                                                    <td><input type="file" class="form-control form-control-sm" name="product_image[]" accept="image/*"></td>
+                                                    <td>
+                                                        <input type="file" class="form-control form-control-sm product-image-input" name="product_image[]" accept="image/*">
+                                                        <input type="hidden" class="existing-image-name" name="existing_image_name[]" value="<?php echo htmlspecialchars($product['product_image_name']); ?>">
+                                                    </td>
+                                                    <td>
+                                                        <?php 
+                                                            $imgSrc = '';
+                                                            $imageName = htmlspecialchars($product['product_image_name']);
+                                                            if (!empty($imageName)) {
+                                                                // Define base URL for images, adjust if needed for live environment
+                                                                $baseImageUrl = '/php_erp/assets/images/upload/quotation/';
+                                                                $imagePath = $baseImageUrl . $imageName;
+                                                                $fullServerPath = $_SERVER['DOCUMENT_ROOT'] . $imagePath;
+
+                                                                // Check if file exists on server
+                                                                if (!file_exists($fullServerPath)) {
+                                                                    // Try alternative path if DOCUMENT_ROOT is different on live
+                                                                    $altServerPath = realpath(__DIR__ . '/../../assets/images/upload/quotation/' . $imageName);
+                                                                    if ($altServerPath && file_exists($altServerPath)) {
+                                                                        $imagePath = str_replace($_SERVER['DOCUMENT_ROOT'], '', $altServerPath);
+                                                                        $imagePath = str_replace('\\', '/', $imagePath);
+                                                                    }
+                                                                }
+
+                                                                // Add timestamp to prevent caching
+                                                                $imgSrc = $imagePath . '?t=' . time();
+                                                            }
+                                                        ?>
+                                                        <img class="product-image-preview" src="<?php echo $imgSrc; ?>" alt="Preview" style="max-width: 80px; max-height: 80px; display: <?php echo empty($imgSrc) ? 'none' : 'block'; ?>;">
+                                                    </td>
                                                     <td><input type="text" class="form-control form-control-sm" name="item_name[]" value="<?php echo htmlspecialchars($product['item_name']); ?>"></td>
                                                     <td><input type="text" class="form-control form-control-sm" name="item_code[]" value="<?php echo htmlspecialchars($product['item_code']); ?>"></td>
                                                     <td><input type="text" class="form-control form-control-sm" name="assembly[]" value="<?php echo htmlspecialchars($product['assembly']); ?>"></td>
-                                                    <td><input type="number" class="form-control form-control-sm" name="item_h[]" value="<?php echo htmlspecialchars($product['item_h']); ?>"></td>
-                                                    <td><input type="number" class="form-control form-control-sm" name="item_w[]" value="<?php echo htmlspecialchars($product['item_w']); ?>"></td>
-                                                    <td><input type="number" class="form-control form-control-sm" name="item_d[]" value="<?php echo htmlspecialchars($product['item_d']); ?>"></td>
-                                                    <td><input type="number" class="form-control form-control-sm" name="box_h[]" value="<?php echo htmlspecialchars($product['box_h']); ?>"></td>
-                                                    <td><input type="number" class="form-control form-control-sm" name="box_w[]" value="<?php echo htmlspecialchars($product['box_w']); ?>"></td>
-                                                    <td><input type="number" class="form-control form-control-sm" name="box_d[]" value="<?php echo htmlspecialchars($product['box_d']); ?>"></td>
+<td><input type="number" class="form-control form-control-sm item-w" name="item_w[]" value="<?php echo htmlspecialchars($product['item_w']); ?>"></td>
+<td><input type="number" class="form-control form-control-sm item-d" name="item_d[]" value="<?php echo htmlspecialchars($product['item_d']); ?>"></td>
+<td><input type="number" class="form-control form-control-sm item-h" name="item_h[]" value="<?php echo htmlspecialchars($product['item_h']); ?>"></td>
+<td><input type="number" class="form-control form-control-sm box-w" name="box_w[]" value="<?php echo htmlspecialchars($product['box_w']); ?>"></td>
+<td><input type="number" class="form-control form-control-sm box-d" name="box_d[]" value="<?php echo htmlspecialchars($product['box_d']); ?>"></td>
+<td><input type="number" class="form-control form-control-sm box-h" name="box_h[]" value="<?php echo htmlspecialchars($product['box_h']); ?>"></td>
                                                     <td><input type="number" class="form-control form-control-sm cbm-field" name="cbm[]" value="<?php echo htmlspecialchars($product['cbm']); ?>" readonly></td>
                                                     <td><input type="text" class="form-control form-control-sm" name="wood_type[]" value="<?php echo htmlspecialchars($product['wood_type']); ?>"></td>
                                                     <td><input type="number" class="form-control form-control-sm" name="no_of_packet[]" value="<?php echo htmlspecialchars($product['no_of_packet']); ?>"></td>
-                                                    <td><input type="number" class="form-control form-control-sm" name="iron_gauge[]" value="<?php echo htmlspecialchars($product['iron_gauge']); ?>"></td>
-                                                    <td><input type="text" class="form-control form-control-sm" name="mdf_finish[]" value="<?php echo htmlspecialchars($product['mdf_finish']); ?>"></td>
                                                     <td><input type="number" class="form-control form-control-sm quantity-field" name="quantity[]" value="<?php echo htmlspecialchars($product['quantity']); ?>"></td>
                                                     <td><input type="number" class="form-control form-control-sm price-field" name="price_usd[]" value="<?php echo htmlspecialchars($product['price_usd']); ?>"></td>
-                                                    <td><input type="number" class="form-control form-control-sm total-field" name="total_usd[]" value="<?php echo number_format($product['quantity'] * $product['price_usd'], 2); ?>" readonly></td>
+                                                    <td><input type="number" class="form-control form-control-sm total-field" name="total_usd[]" value="<?php echo is_numeric($product['quantity']) && is_numeric($product['price_usd']) ? ($product['quantity'] * $product['price_usd']) : ''; ?>" readonly></td>
                                                     <td><input type="text" class="form-control form-control-sm" name="comments[]" value="<?php echo htmlspecialchars($product['comments']); ?>"></td>
                                                     <td><button type="button" class="btn btn-danger btn-sm remove-row">Remove</button></td>
                                                 </tr>
@@ -238,10 +242,8 @@ if (!$conn instanceof PDO) {
                 <input type="hidden" name="quotation_id" value="<?php echo htmlspecialchars($quotation['id']); ?>">
             <?php endif; ?>
         </form>
-
     </div>
 
-    
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
         <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header">
@@ -252,439 +254,445 @@ if (!$conn instanceof PDO) {
         </div>
     </div>
 
-    <!-- Modal removed - using dynamic rows instead -->
-
     <div>
         <?php include_once ROOT_DIR_PATH . '/include/inc/footer.php'; ?>
     </div>
 </div>
 
-
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="<?php echo BASE_URL; ?>modules/quotation/progress_handler.js"></script>
 
 <script>
-    $(document).ready(function() {
-        var editMode = <?php echo $editMode ? 'true' : 'false'; ?>;
-        var disableLeadDropdown = <?php echo $disableLeadDropdown ? 'true' : 'false'; ?>;
+$(document).ready(function() {
+    var editMode = <?php echo $editMode ? 'true' : 'false'; ?>;
+    var disableLeadDropdown = <?php echo $disableLeadDropdown ? 'true' : 'false'; ?>;
 
-        if (disableLeadDropdown) {
-            $('#lead_number').trigger('change');
+    if (disableLeadDropdown) {
+        $('#lead_number').trigger('change');
+    }
+    
+    $('#uploadProductsBtn').click(function() {
+        $('#productFileInput').click();
+    });
+
+    async function processFile(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const reader = new FileReader();
+
+        return new Promise((resolve, reject) => {
+            reader.onload = function(e) {
+                try {
+                    let jsonData = [];
+                    if (ext === 'xlsx' || ext === 'xls') {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[sheetName];
+                        jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                    } else if (ext === 'csv') {
+                        const text = e.target.result;
+                        jsonData = text.split(/\r?\n/).map(line => line.split(','));
+                    } else {
+                        throw new Error('Unsupported file type. Please upload an Excel (xlsx, xls) or CSV file.');
+                    }
+                    resolve(jsonData);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            reader.onerror = (error) => reject(error);
+
+            if (ext === 'xlsx' || ext === 'xls') {
+                reader.readAsArrayBuffer(file);
+            } else if (ext === 'csv') {
+                reader.readAsText(file);
+            } else {
+                reject(new Error('Unsupported file type.'));
+            }
+        });
+    }
+
+    $('#productFileInput').on('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Show progress modal for large files
+        if (file.size > 1024 * 1024) { // Files larger than 1MB
+            ProgressHandler.show();
+            ProgressHandler.updateText('Reading Excel file...');
+        } else {
+            $('#csvProcessingMsg').show();
         }
         
-        // Add new product row
-        $('#addRowBtn').click(function() {
-            var rowCount = $('#productTableBody tr').length + 1;
-            var newRow = `
-                <tr>
-                    <td>${rowCount}</td>
-                    <td><input type="file" class="form-control form-control-sm" name="product_image[]" accept="image/*"></td>
-                    <td><input type="text" class="form-control form-control-sm" name="item_name[]" placeholder="Item Name" style="min-width: 120px;"></td>
-                    <td><input type="text" class="form-control form-control-sm" name="item_code[]" placeholder="Item Code" style="min-width: 100px;"></td>
-                    <td><input type="text" class="form-control form-control-sm" name="assembly[]" placeholder="Assembly" style="min-width: 100px;"></td>
-                    <td><input type="number" class="form-control form-control-sm" name="item_h[]" placeholder="H" step="0.01"></td>
-                    <td><input type="number" class="form-control form-control-sm" name="item_w[]" placeholder="W" step="0.01"></td>
-                    <td><input type="number" class="form-control form-control-sm" name="item_d[]" placeholder="D" step="0.01"></td>
-                    <td><input type="number" class="form-control form-control-sm box-h" name="box_h[]" placeholder="H" step="0.01"></td>
-                    <td><input type="number" class="form-control form-control-sm box-w" name="box_w[]" placeholder="W" step="0.01"></td>
-                    <td><input type="number" class="form-control form-control-sm box-d" name="box_d[]" placeholder="D" step="0.01"></td>
-                    <td><input type="number" class="form-control form-control-sm cbm-field" name="cbm[]" readonly></td>
-                    <td><input type="text" class="form-control form-control-sm" name="wood_type[]" placeholder="Wood Type"></td>
-                    <td><input type="number" class="form-control form-control-sm" name="no_of_packet[]" placeholder="Packets"></td>
-                    <td><input type="number" class="form-control form-control-sm" name="iron_gauge[]" placeholder="Gauge" step="0.01"></td>
-                    <td><input type="text" class="form-control form-control-sm" name="mdf_finish[]" placeholder="Finish"></td>
-                    <td><input type="number" class="form-control form-control-sm quantity-field" name="quantity[]" placeholder="Qty"></td>
-                    <td><input type="number" class="form-control form-control-sm price-field" name="price_usd[]" placeholder="Price" step="0.01"></td>
-                    <td><input type="number" class="form-control form-control-sm total-field" name="total_usd[]" readonly></td>
-                    <td><input type="text" class="form-control form-control-sm" name="comments[]" placeholder="Comments"></td>
-                    <td><button type="button" class="btn btn-danger btn-sm remove-row">Remove</button></td>
-                </tr>
-            `;
-            $('#productTableBody').append(newRow);
-            updateRowNumbers();
-        });
+        try {
+            const jsonData = await processFile(file);
+            
+            if (file.size > 1024 * 1024) {
+                ProgressHandler.updateText('Processing data rows...');
+            }
+            
+            fillProductTable(jsonData);
+            
+            // Show success message
+            const rowCount = jsonData.length - 1; // Exclude header
+            if (rowCount > 0) {
+                alert(`Successfully loaded ${rowCount} products from Excel file.`);
+            }
+            
+        } catch (error) {
+            console.error("File parsing error:", error);
+            alert('Error processing file: ' + error.message);
+        } finally {
+            if (file.size > 1024 * 1024) {
+                ProgressHandler.hide();
+            } else {
+                $('#csvProcessingMsg').hide();
+            }
+            $('#productFileInput').val('');
+        }
+    });
+    
+    function fillProductTable(data) {
+        $('#productTableBody').empty();
+        if (data.length < 2) { 
+            alert("File must contain at least a header row and one data row.");
+            return;
+        }
+
+        let rowNum = 1;
+        const headers = data[0].map(h => (h || '').toString().trim().toLowerCase());
+        const dataRows = data.slice(1); 
         
-        // Remove row
-        $(document).on('click', '.remove-row', function() {
-            $(this).closest('tr').remove();
-            updateRowNumbers();
-        });
-        
-        // Update row numbers
-        function updateRowNumbers() {
-            $('#productTableBody tr').each(function(index) {
-                $(this).find('td:first').text(index + 1);
+        // Create header mapping for flexible column names
+        const headerMap = {
+            'item name': 'item_name',
+            'item_name': 'item_name',
+            'product name': 'item_name',
+            'item code': 'item_code',
+            'item_code': 'item_code',
+            'assembly': 'assembly',
+            'item w': 'item_w',
+            'item_w': 'item_w',
+            'width': 'item_w',
+            'item d': 'item_d', 
+            'item_d': 'item_d',
+            'depth': 'item_d',
+            'item h': 'item_h',
+            'item_h': 'item_h', 
+            'height': 'item_h',
+            'box w': 'box_w',
+            'box_w': 'box_w',
+            'box width': 'box_w',
+            'box d': 'box_d',
+            'box_d': 'box_d',
+            'box depth': 'box_d',
+            'box h': 'box_h',
+            'box_h': 'box_h',
+            'box height': 'box_h',
+            'wood/marble type': 'wood_type',
+            'wood type': 'wood_type',
+            'wood_type': 'wood_type',
+            'material': 'wood_type',
+            'no. of packet': 'no_of_packet',
+            'no of packet': 'no_of_packet',
+            'packets': 'no_of_packet',
+            'quantity': 'quantity',
+            'qty': 'quantity',
+            'price usd': 'price_usd',
+            'price': 'price_usd',
+            'unit price': 'price_usd',
+            'comments': 'comments',
+            'remarks': 'comments',
+            'notes': 'comments'
+        };
+
+        dataRows.forEach(rowData => {
+            if (!rowData || rowData.length === 0 || rowData.every(cell => !cell || cell.toString().trim() === '')) {
+                return;
+            }
+
+            let product = {};
+            headers.forEach((header, index) => {
+                const mappedKey = headerMap[header] || header;
+                product[mappedKey] = rowData[index] ? rowData[index].toString().trim() : '';
             });
-        }
-        
-        // Calculate CBM on box dimension change
-        $(document).on('input', '.box-h, .box-w, .box-d', function() {
-            var row = $(this).closest('tr');
-            var h = parseFloat(row.find('.box-h').val()) || 0;
-            var w = parseFloat(row.find('.box-w').val()) || 0;
-            var d = parseFloat(row.find('.box-d').val()) || 0;
-            var cbm = (h * w * d) / 1000000;
-            row.find('.cbm-field').val(cbm.toFixed(4));
+
+            const getVal = (key) => product[key] || '';
+            
+            let itemData = {
+                item_name: getVal('item_name'),
+                item_code: getVal('item_code'),
+                assembly: getVal('assembly'),
+                item_w: getVal('item_w'),
+                item_d: getVal('item_d'),
+                item_h: getVal('item_h'),
+                box_w: getVal('box_w'),
+                box_d: getVal('box_d'),
+                box_h: getVal('box_h'),
+                wood_type: getVal('wood_type'),
+                no_of_packet: getVal('no_of_packet'),
+                quantity: getVal('quantity'),
+                price_usd: getVal('price_usd'),
+                comments: getVal('comments')
+            };
+            
+            // Skip rows without item name
+            if (!itemData.item_name) {
+                return;
+            }
+
+            const rowHTML = `<tr>
+                <td>${rowNum++}</td>
+                <td><input type="file" class="form-control form-control-sm product-image-input" name="product_image[]" accept="image/*"><input type="hidden" class="existing-image-name" name="existing_image_name[]" value=""></td>
+                <td><img class="product-image-preview" src="" alt="Preview" style="max-width: 80px; max-height: 80px; display: none;"></td>
+                <td><input type="text" class="form-control form-control-sm" name="item_name[]" value="${itemData.item_name}"></td>
+                <td><input type="text" class="form-control form-control-sm" name="item_code[]" value="${itemData.item_code}"></td>
+                <td><input type="text" class="form-control form-control-sm" name="assembly[]" value="${itemData.assembly}"></td>
+                <td><input type="number" class="form-control form-control-sm item-w" name="item_w[]" value="${itemData.item_w}" step="0.01"></td>
+                <td><input type="number" class="form-control form-control-sm item-d" name="item_d[]" value="${itemData.item_d}" step="0.01"></td>
+                <td><input type="number" class="form-control form-control-sm item-h" name="item_h[]" value="${itemData.item_h}" step="0.01"></td>
+                <td><input type="number" class="form-control form-control-sm box-w" name="box_w[]" value="${itemData.box_w}" step="0.01"></td>
+                <td><input type="number" class="form-control form-control-sm box-d" name="box_d[]" value="${itemData.box_d}" step="0.01"></td>
+                <td><input type="number" class="form-control form-control-sm box-h" name="box_h[]" value="${itemData.box_h}" step="0.01"></td>
+                <td><input type="number" class="form-control form-control-sm cbm-field" name="cbm[]" readonly step="0.0001"></td>
+                <td><input type="text" class="form-control form-control-sm" name="wood_type[]" value="${itemData.wood_type}"></td>
+                <td><input type="number" class="form-control form-control-sm" name="no_of_packet[]" value="${itemData.no_of_packet}"></td>
+                <td><input type="number" class="form-control form-control-sm quantity-field" name="quantity[]" value="${itemData.quantity}" step="0.01"></td>
+                <td><input type="number" class="form-control form-control-sm price-field" name="price_usd[]" value="${itemData.price_usd}" step="0.01"></td>
+                <td><input type="number" class="form-control form-control-sm total-field" name="total_usd[]" readonly step="0.01"></td>
+                <td><input type="text" class="form-control form-control-sm" name="comments[]" value="${itemData.comments}"></td>
+                <td><button type="button" class="btn btn-danger btn-sm remove-row">Remove</button></td>
+            </tr>`;
+            
+            const $row = $(rowHTML);
+            $('#productTableBody').append($row);
+            updateCBM($row);
+            updateTotalUSD($row);
         });
         
-        // Calculate total on quantity/price change
-        $(document).on('input', '.quantity-field, .price-field', function() {
-            var row = $(this).closest('tr');
-            var qty = parseFloat(row.find('.quantity-field').val()) || 0;
-            var price = parseFloat(row.find('.price-field').val()) || 0;
-            var total = qty * price;
-            row.find('.total-field').val(total.toFixed(2));
+        console.log(`Loaded ${rowNum - 1} products from Excel file`);
+    }
+    
+    function updateCBM(row) {
+        const w = parseFloat(row.find('.box-w').val()) || 0;
+        const d = parseFloat(row.find('.box-d').val()) || 0;
+        const h = parseFloat(row.find('.box-h').val()) || 0;
+        const cbm = (w * d * h) / 1000000;
+        row.find('.cbm-field').val(cbm > 0 ? cbm.toFixed(4) : '');
+    }
+
+    function updateTotalUSD(row) {
+        const qty = parseFloat(row.find('.quantity-field').val()) || 0;
+        const price = parseFloat(row.find('.price-field').val()) || 0;
+        const total = qty * price;
+        row.find('.total-field').val(total > 0 ? total.toFixed(2) : '');
+    }
+
+    $(document).on('input', '.box-w, .box-d, .box-h', function() { 
+        updateCBM($(this).closest('tr')); 
+    });
+    $(document).on('input', '.quantity-field, .price-field', function() { 
+        updateTotalUSD($(this).closest('tr')); 
+    });
+    $('#productTableBody').on('click', '.remove-row', function() { 
+        $(this).closest('tr').remove();
+        // Update row numbers
+        $('#productTableBody tr').each(function(index) {
+            $(this).find('td:first').text(index + 1);
         });
+    });
 
-        
-        function populateLeadDetails() {
-            var selectedOption = $('#lead_number').find('option:selected');
-            console.log('Selected lead option:', selectedOption);
-            $('#customer_name').val(selectedOption.data('company-name') || '');
-            $('#customer_email').val(selectedOption.data('contact-email') || '');
-            $('#customer_phone').val(selectedOption.data('contact-phone') || '');
+    $('#productTableBody tr').each(function() {
+        updateCBM($(this));
+        updateTotalUSD($(this));
+    });
 
-            // Fetch latest quotation number via AJAX when lead changes
+    function populateLeadDetails() {
+        var selectedOption = $('#lead_number').find('option:selected');
+        $('#customer_name').val(selectedOption.data('company-name') || '');
+        $('#customer_email').val(selectedOption.data('contact-email') || '');
+        $('#customer_phone').val(selectedOption.data('contact-phone') || '');
+        $('#lead_id').val(selectedOption.val());
+
+        if (!editMode) {
             $.ajax({
                 url: '<?php echo BASE_URL; ?>modules/quotation/get_latest_quotation_number.php',
                 type: 'GET',
                 dataType: 'json',
-                success: function(data) {
-                    console.log('AJAX response for latest quotation number:', data);
-                    if (data.success && data.latest_quotation_number) {
-                        $('#quotation_number').val(data.latest_quotation_number);
-                    } else {
-                        $('#quotation_number').val('');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('AJAX error fetching latest quotation number:', error);
-                    $('#quotation_number').val('');
-                }
+                success: function(data) { if (data.success) $('#quotation_number').val(data.latest_quotation_number); },
+                error: function() { console.error('Error fetching quotation number.'); }
             });
         }
+    }
 
-        $('#lead_number').change(function() {
-            populateLeadDetails();
-        });
+    $('#lead_number').change(populateLeadDetails);
+    if (disableLeadDropdown || editMode) {
+        populateLeadDetails();
+    }
+    
+    $('#quotationForm').submit(function(e) {
+        e.preventDefault();
+        
+        // Show loading state
+        var submitBtn = $(this).find('button[type="submit"]');
+        var originalText = submitBtn.text();
+        submitBtn.prop('disabled', true).text('Saving...');
+        
+        var formData = new FormData(this);
+        var productsData = [];
 
-        if (disableLeadDropdown) {
-            // Trigger auto-population directly on page load before disabling dropdown
-            populateLeadDetails();
-            $('#lead_number').prop('disabled', true);
-        }
-
-        function calculateTotalUSD() {
-            var price = parseFloat($('#modal_price_per_unit').val()) || 0;
-            var quantity = parseInt($('#modal_quantity').val()) || 0;
-            $('#modal_total_usd').val((price * quantity).toFixed(2));
-        }
-
-        function calculateCBM() {
-            var boxH = parseFloat($('#modal_box_h').val()) || 0;
-            var boxW = parseFloat($('#modal_box_w').val()) || 0;
-            var boxD = parseFloat($('#modal_box_d').val()) || 0;
-            var cbm = (boxH * boxW * boxD) / 1000000; // convert cubic cm to cubic meters
-            $('#modal_cbm').val(cbm.toFixed(2));
-        }
-
-        $('#modal_box_h, #modal_box_w, #modal_box_d').on('input', calculateCBM);
-
-        $('#modal_price_per_unit, #modal_quantity').on('input', calculateTotalUSD);
-
-        $('#addProductButton').click(function() {
-            if ($(this).data('edit-index') !== undefined) {
-                // Update existing product row
-                var editIndex = $(this).data('edit-index');
-                var productData = {
-                    item_name: $('#modal_item_name').val(),
-                    item_code: $('#modal_item_code').val(),
-                    description: $('#modal_description').val(),
-                    assembly: $('#modal_assembly').val(),
-                    item_h: $('#modal_item_h').val(),
-                    item_w: $('#modal_item_w').val(),
-                    item_d: $('#modal_item_d').val(),
-                    box_h: $('#modal_box_h').val(),
-                    box_w: $('#modal_box_w').val(),
-                    box_d: $('#modal_box_d').val(),
-                    cbm: $('#modal_cbm').val(),
-                    wood_type: $('#modal_wood_type').val(),
-                    no_of_packet: $('#modal_no_of_packet').val(),
-                    iron_gauge: $('#modal_iron_gauge').val(),
-                    mdf_finish: $('#modal_product_finish').val(),
-                    quantity: $('#modal_quantity').val(),
-                    price_usd: $('#modal_price_per_unit').val(),
-                    comments: $('#modal_comments').val()
-                };
-
-                var imageFile = $('#modal_product_image')[0].files[0];
-                var imageUrl = '';
-                if (imageFile) {
-                    imageUrl = URL.createObjectURL(imageFile);
-                    productImages[editIndex] = imageFile;
+        $('#productTableBody tr').each(function(index) {
+            var $row = $(this);
+            var productData = {
+                item_name: $row.find('[name="item_name[]"]').val() || '',
+                item_code: $row.find('[name="item_code[]"]').val() || '',
+                assembly: $row.find('[name="assembly[]"]').val() || '',
+                item_w: $row.find('[name="item_w[]"]').val() || '',
+                item_d: $row.find('[name="item_d[]"]').val() || '',
+                item_h: $row.find('[name="item_h[]"]').val() || '',
+                box_w: $row.find('[name="box_w[]"]').val() || '',
+                box_d: $row.find('[name="box_d[]"]').val() || '',
+                box_h: $row.find('[name="box_h[]"]').val() || '',
+                cbm: $row.find('[name="cbm[]"]').val() || '',
+                wood_type: $row.find('[name="wood_type[]"]').val() || '',
+                no_of_packet: $row.find('[name="no_of_packet[]"]').val() || '',
+                quantity: $row.find('[name="quantity[]"]').val() || '0',
+                price_usd: $row.find('[name="price_usd[]"]').val() || '0',
+                comments: $row.find('[name="comments[]"]').val() || '',
+                existing_image_name: $row.find('[name="existing_image_name[]"]').val() || ''
+            };
+            
+            console.log('Processing row ' + index + ':', productData);
+            
+            // Only add products with item_name
+            if (productData.item_name.trim() !== '') {
+                productsData.push(productData);
+                
+                // Handle image files
+                var imageInput = $row.find('[name="product_image[]"]')[0];
+                if (imageInput && imageInput.files[0]) {
+                    formData.append('product_images[' + index + ']', imageInput.files[0]);
+                    console.log('Added image for row ' + index);
                 }
-
-                var $row = $('#productTable tbody tr').eq(editIndex);
-                $row.find('td').eq(1).html('<img src="' + (imageUrl || $row.find('td').eq(1).find('img').attr('src')) + '" alt="Product Image" style="max-width: 80px; max-height: 80px;">');
-                $row.find('td').eq(2).text(productData.item_name + ' / ' + productData.item_code);
-                $row.find('td').eq(3).text(productData.description);
-                $row.find('td').eq(4).text(productData.assembly);
-                $row.find('td').eq(5).text(productData.item_h);
-                $row.find('td').eq(6).text(productData.item_w);
-                $row.find('td').eq(7).text(productData.item_d);
-                $row.find('td').eq(8).text(productData.box_h);
-                $row.find('td').eq(9).text(productData.box_w);
-                $row.find('td').eq(10).text(productData.box_d);
-                $row.find('td').eq(11).text(productData.cbm);
-                $row.find('td').eq(12).text(productData.wood_type);
-                $row.find('td').eq(13).text(productData.no_of_packet);
-                $row.find('td').eq(14).text(productData.iron_gauge);
-                $row.find('td').eq(15).text(productData.mdf_finish);
-                $row.find('td').eq(16).text(productData.quantity);
-                $row.find('td').eq(17).text(productData.price_usd);
-                $row.find('td').eq(18).text((productData.quantity * productData.price_usd).toFixed(2));
-                $row.find('td').eq(19).text(productData.comments);
-
-                $('#addProductModal').modal('hide');
-                $('#addProductModal input, #addProductModal textarea').val('');
-                $('#modal_product_image').val('');
-                $('#addProductButton').removeData('edit-index').text('Add Product');
-                updateTotalAmount();
             } else {
-                var productData = {
-                    item_name: $('#modal_item_name').val(),
-                    item_code: $('#modal_item_code').val(),
-                    description: $('#modal_description').val(),
-                    assembly: $('#modal_assembly').val(),
-                    item_h: $('#modal_item_h').val(),
-                    item_w: $('#modal_item_w').val(),
-                    item_d: $('#modal_item_d').val(),
-                    box_h: $('#modal_box_h').val(),
-                    box_w: $('#modal_box_w').val(),
-                    box_d: $('#modal_box_d').val(),
-                    cbm: $('#modal_cbm').val(),
-                    wood_type: $('#modal_wood_type').val(),
-                    no_of_packet: $('#modal_no_of_packet').val(),
-                    iron_gauge: $('#modal_iron_gauge').val(),
-                    mdf_finish: $('#modal_product_finish').val(),
-                    quantity: $('#modal_quantity').val(),
-                    price_usd: $('#modal_price_per_unit').val(),
-                    comments: $('#modal_comments').val()
-                };
-
-                var rowCount = $('#productTable tbody tr').length;
-
-                var imageFile = $('#modal_product_image')[0].files[0];
-                var imageUrl = '';
-                if (imageFile) {
-                    imageUrl = URL.createObjectURL(imageFile);
-                    productImages.splice(rowCount, 0, imageFile);
-                } else {
-                    productImages.splice(rowCount, 0, null);
-                }
-
-                var newRow = '<tr>' +
-                    '<td>' + (rowCount + 1) + '</td>' +
-                    '<td><img src="' + imageUrl + '" alt="Product Image" style="max-width: 80px; max-height: 80px;"></td>' +
-                    '<td>' + productData.item_name + ' / ' + productData.item_code + '</td>' +
-                    '<td>' + productData.description + '</td>' +
-                    '<td>' + productData.assembly + '</td>' +
-                    '<td>' + productData.item_h + '</td>' +
-                    '<td>' + productData.item_w + '</td>' +
-                    '<td>' + productData.item_d + '</td>' +
-                    '<td>' + productData.box_h + '</td>' +
-                    '<td>' + productData.box_w + '</td>' +
-                    '<td>' + productData.box_d + '</td>' +
-                    '<td>' + productData.cbm + '</td>' +
-                    '<td>' + productData.wood_type + '</td>' +
-                    '<td>' + productData.no_of_packet + '</td>' +
-                    '<td>' + productData.iron_gauge + '</td>' +
-                    '<td>' + productData.mdf_finish + '</td>' +
-                    '<td>' + productData.quantity + '</td>' +
-                    '<td>' + productData.price_usd + '</td>' +
-                    '<td class="totalUsdCell">' + (productData.quantity * productData.price_usd).toFixed(2) + '</td>' +
-                    '<td>' + productData.comments + '</td>' +
-                '<td><button type="button" class="btn btn-primary btn-sm editProductBtn me-2" title="Edit"><i class="fas fa-edit"></i></button><button type="button" class="btn btn-danger btn-sm removeProductBtn" title="Remove"><i class="fas fa-trash-alt"></i></button></td>' +
-                    '</tr>';
-
-                $('#productTable tbody').append(newRow);
-
-                $('#addProductModal').modal('hide');
-
-                $('#addProductModal input, #addProductModal textarea').val('');
-                $('#modal_product_image').val('');
-                updateTotalAmount();
+                console.log('Skipping row ' + index + ' - no item name');
             }
         });
-
-        // Adjust buttons inline style with gap
-        $('#productTable').on('mouseenter', 'td > button', function() {
-            $(this).parent().find('button').css({'display': 'inline-block', 'margin-right': '5px', 'vertical-align': 'middle'});
-        });
-        // Edit product button click handler
-        $('#productTable').on('click', '.editProductBtn', function() {
-            var $row = $(this).closest('tr');
-            var index = $row.index();
-
-            // Populate modal fields from table row safely
-            var itemNameCode = $row.find('td').eq(2).text().split(' / ');
-            $('#modal_item_name').val(itemNameCode.length > 0 ? itemNameCode[0].trim() : '');
-            $('#modal_item_code').val(itemNameCode.length > 1 ? itemNameCode[1].trim() : '');
-            $('#modal_description').val($row.find('td').eq(3).text() ? $row.find('td').eq(3).text().trim() : '');
-            $('#modal_assembly').val($row.find('td').eq(4).text() ? $row.find('td').eq(4).text().trim() : '');
-            $('#modal_item_h').val($row.find('td').eq(5).text() ? $row.find('td').eq(5).text().trim() : '');
-            $('#modal_item_w').val($row.find('td').eq(6).text() ? $row.find('td').eq(6).text().trim() : '');
-            $('#modal_item_d').val($row.find('td').eq(7).text() ? $row.find('td').eq(7).text().trim() : '');
-            $('#modal_box_h').val($row.find('td').eq(8).text() ? $row.find('td').eq(8).text().trim() : '');
-            $('#modal_box_w').val($row.find('td').eq(9).text() ? $row.find('td').eq(9).text().trim() : '');
-            $('#modal_box_d').val($row.find('td').eq(10).text() ? $row.find('td').eq(10).text().trim() : '');
-            $('#modal_cbm').val($row.find('td').eq(11).text() ? $row.find('td').eq(11).text().trim() : '');
-            $('#modal_no_of_packet').val($row.find('td').eq(13).text() ? $row.find('td').eq(13).text().trim() : '');
-            $('#modal_quantity').val($row.find('td').eq(16).text() ? $row.find('td').eq(16).text().trim() : '');
-
-            // Recalculate CBM based on box dimensions
-            calculateCBM();
-
-            $('#modal_wood_type').val($row.find('td').eq(12).text() ? $row.find('td').eq(12).text().trim() : '');
-            $('#modal_no_of_packet').val($row.find('td').eq(13).text() ? $row.find('td').eq(13).text().trim() : '');
-            $('#modal_iron_gauge').val($row.find('td').eq(14).text() ? $row.find('td').eq(14).text().trim() : '');
-            $('#modal_product_finish').val($row.find('td').eq(15).text() ? $row.find('td').eq(15).text().trim() : '');
-            $('#modal_quantity').val($row.find('td').eq(16).text() ? $row.find('td').eq(16).text().trim() : '');
-            $('#modal_price_per_unit').val($row.find('td').eq(17).text() ? $row.find('td').eq(17).text().trim() : '');
-            $('#modal_comments').val($row.find('td').eq(19).text() ? $row.find('td').eq(19).text().trim() : '');
-
-            // Clear file input (cannot set value programmatically for security reasons)
-            $('#modal_product_image').val('');
-
-            // Set edit index on addProductButton
-            $('#addProductButton').data('edit-index', index).text('Update Product');
-
-            // Show modal
-            $('#addProductModal').modal('show');
-        });
-
-        $('#productTable').on('click', '.removeProductBtn', function() {
-            var rowIndex = $(this).closest('tr').index();
-            productImages.splice(rowIndex, 1);
-            $(this).closest('tr').remove();
-            $('#productTable tbody tr').each(function(index) {
-                $(this).find('td:first').text(index + 1);
-            });
-        });
-
-        $('#quotationForm').submit(function(e) {
-            e.preventDefault();
-
-            var formData = new FormData();
-
+        
+        console.log('Total products to save:', productsData.length);
+        console.log('Products data:', productsData);
+        
+        formData.append('products', JSON.stringify(productsData));
+        if ($('#lead_number').is(':disabled')) {
             formData.append('lead_id', $('#lead_number').val());
-            formData.append('quotation_date', $('#quotation_date').val());
-            formData.append('quotation_number', $('#quotation_number').val());
-            formData.append('customer_name', $('#customer_name').val());
-            formData.append('customer_email', $('#customer_email').val());
-            formData.append('customer_phone', $('#customer_phone').val());
-            formData.append('delivery_term', $('#delivery_term').val());
-            formData.append('terms_of_delivery', $('#terms_of_delivery').val());
-
-            var editMode = <?php echo $editMode ? 'true' : 'false'; ?>;
-            if (editMode) {
-                formData.append('quotation_id', '<?php echo $quotation ? $quotation["id"] : ""; ?>');
+        }
+        
+        // Debug form data
+        console.log('Form data being sent:');
+        for (var pair of formData.entries()) {
+            if (pair[0] !== 'products') {
+                console.log(pair[0] + ': ' + pair[1]);
             }
+        }
+        
+        var toastEl = document.getElementById('liveToast');
+        var toast = new bootstrap.Toast(toastEl);
 
-            var products = [];
-            $('#productTableBody tr').each(function(index, tr) {
-                var $tr = $(tr);
-                var product = {
-                    item_name: $tr.find('input[name="item_name[]"]').val() || '',
-                    item_code: $tr.find('input[name="item_code[]"]').val() || '',
-                    assembly: $tr.find('input[name="assembly[]"]').val() || '',
-                    item_h: $tr.find('input[name="item_h[]"]').val() || '',
-                    item_w: $tr.find('input[name="item_w[]"]').val() || '',
-                    item_d: $tr.find('input[name="item_d[]"]').val() || '',
-                    box_h: $tr.find('input[name="box_h[]"]').val() || '',
-                    box_w: $tr.find('input[name="box_w[]"]').val() || '',
-                    box_d: $tr.find('input[name="box_d[]"]').val() || '',
-                    cbm: $tr.find('input[name="cbm[]"]').val() || '',
-                    wood_type: $tr.find('input[name="wood_type[]"]').val() || '',
-                    no_of_packet: $tr.find('input[name="no_of_packet[]"]').val() || '',
-                    iron_gauge: $tr.find('input[name="iron_gauge[]"]').val() || '',
-                    mdf_finish: $tr.find('input[name="mdf_finish[]"]').val() || '',
-                    quantity: $tr.find('input[name="quantity[]"]').val() || '',
-                    price_usd: $tr.find('input[name="price_usd[]"]').val() || '',
-                    comments: $tr.find('input[name="comments[]"]').val() || ''
-                };
-                products.push(product);
-            });
-
-            formData.append('products', JSON.stringify(products));
-
-            // Handle product images from file inputs
-            $('#productTableBody tr').each(function(index) {
-                var fileInput = $(this).find('input[type="file"]')[0];
-                if (fileInput && fileInput.files[0]) {
-                    formData.append('products[' + index + '][image]', fileInput.files[0]);
-                }
-            });
-
-            $.ajax({
-                url: '<?php echo BASE_URL; ?>modules/quotation/store.php',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    try {
-                        var res = JSON.parse(response);
-                        if (res.success) {
-                            $('#liveToast .toast-body').text(res.message);
-                            var toast = new bootstrap.Toast(document.getElementById('liveToast'));
-                            toast.show();
-                            toast._element.addEventListener('hidden.bs.toast', function () {
-                                window.location.href = 'index.php';
-                            });
-                        } else {
-                            $('#liveToast .toast-body').text('Error: ' + res.message);
-                            var toast = new bootstrap.Toast(document.getElementById('liveToast'));
-                            toast.show();
-                        }
-                    } catch (e) {
-                        $('#liveToast .toast-body').text('Unexpected response from server.');
-                        var toast = new bootstrap.Toast(document.getElementById('liveToast'));
-                        toast.show();
+        // Show progress for large datasets
+        if (productsData.length > 50) {
+            ProgressHandler.show();
+            ProgressHandler.updateText(`Saving ${productsData.length} products...`);
+        }
+        
+        $.ajax({
+            url: '<?php echo BASE_URL; ?>modules/quotation/store.php',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            timeout: 600000, // 10 minutes timeout
+            xhr: function() {
+                var xhr = new window.XMLHttpRequest();
+                // Upload progress
+                xhr.upload.addEventListener("progress", function(evt) {
+                    if (evt.lengthComputable && productsData.length > 50) {
+                        var percentComplete = evt.loaded / evt.total * 100;
+                        ProgressHandler.updateText(`Uploading... ${Math.round(percentComplete)}%`);
                     }
-                },
-                error: function(xhr, status, error) {
-                    $('#liveToast .toast-body').text('AJAX error: ' + error);
-                    var toast = new bootstrap.Toast(document.getElementById('liveToast'));
+                }, false);
+                return xhr;
+            },
+            success: function(response) {
+                console.log('Server response:', response);
+                try {
+                    var res = typeof response === 'string' ? JSON.parse(response) : response;
+                    console.log('Parsed response:', res);
+                    
+                    $('#liveToast .toast-body').text(res.message || 'Operation completed.');
+                    toast.show();
+                    
+                    if (res.success) {
+                        console.log('Success! Quotation ID:', res.quotation_id);
+                        setTimeout(function() {
+                            window.location.href = 'index.php';
+                        }, 1500);
+                    } else {
+                        console.error('Server returned error:', res.message);
+                    }
+                } catch (e) {
+                    console.error("Error parsing server response:", e);
+                    console.log('Raw response:', response);
+                    $('#liveToast .toast-body').text('Response parsing error. Check console for details.');
                     toast.show();
                 }
-            });
+            },
+            error: function(xhr, status, error) {
+                console.error("AJAX Error:", {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText,
+                    statusCode: xhr.status
+                });
+                
+                var errorMsg = 'Error occurred while saving.';
+                if (status === 'timeout') {
+                    errorMsg = 'Request timed out. Please check if data was saved.';
+                } else if (xhr.status === 500) {
+                    errorMsg = 'Server error. Check debug.log for details.';
+                }
+                
+                $('#liveToast .toast-body').text(errorMsg);
+                toast.show();
+            },
+            complete: function() {
+                if (productsData.length > 50) {
+                    ProgressHandler.hide();
+                }
+                submitBtn.prop('disabled', false).text(originalText);
+            }
         });
-
-        // Function to update total amount in the footer
-        function updateTotalAmount() {
-            var total = 0;
-            $('#productTable tbody tr').each(function() {
-                var text = $(this).find('td').eq(18).text().replace(/,/g, '');
-                var rowTotal = parseFloat(text) || 0;
-                total += rowTotal;
-            });
-            $('#totalAmountCell').text(total.toFixed(2));
-        }
-
-        // Update total amount on page load
-        updateTotalAmount();
-
-        // Update total amount when a product is added
-        $('#addProductButton').click(function() {
-            setTimeout(updateTotalAmount, 100); // Delay to ensure row is added
-        });
-
-        // Update total amount when a product is removed
-        $('#productTable').on('click', '.removeProductBtn', function() {
-            setTimeout(updateTotalAmount, 100); // Delay to ensure row is removed
-        });
-
     });
+
+    $(document).on('change', '.product-image-input', function() {
+        const input = this;
+        const $preview = $(this).closest('tr').find('.product-image-preview');
+        const maxFileSize = 2 * 1024 * 1024; 
+
+        if (input.files && input.files[0]) {
+            if (input.files[0].size > maxFileSize) {
+                alert('File size exceeds 2MB. Please choose a smaller file.');
+                $(input).val('');
+                $preview.hide().attr('src', '');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = e => $preview.attr('src', e.target.result).show();
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            $preview.hide().attr('src', '');
+        }
+    });
+});
 </script>

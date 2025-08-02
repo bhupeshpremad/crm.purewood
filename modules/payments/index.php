@@ -176,61 +176,40 @@ if ($user_type === 'superadmin') {
 
 <script>
 $(document).ready(function() {
-    // Payment Details Modal (View Details button)
+    // Payment Details Modal (View Details button) - Simplified
     $(document).on('click', '.view-payment-details-btn', function() {
         var paymentId = $(this).data('payment-id');
         $('#itemDetailsTable tbody').empty();
         $('#totalItemAmount').text('');
+        
         $.ajax({
-            url: '<?php echo BASE_URL; ?>modules/payments/ajax_get_payment_details.php',
+            url: '<?php echo BASE_URL; ?>modules/payments/ajax_fetch_payment_details_by_jci.php',
             type: 'GET',
             data: { payment_id: paymentId },
             dataType: 'json',
             success: function(response) {
-                console.log('Payment details response:', response);
-                if (response.success) {
-                    var totalAmount = 0;
-                    $('#itemDetailsTable tbody').empty();
-                    
-                    // Direct fetch from payment_details table
-                    $.ajax({
-                        url: '<?php echo BASE_URL; ?>modules/payments/ajax_fetch_payment_details_by_jci.php',
-                        type: 'GET',
-                        data: { payment_id: paymentId },
-                        dataType: 'json',
-                        success: function(detailsResponse) {
-                            console.log('Payment details response:', detailsResponse);
-                            if (detailsResponse.success && detailsResponse.payment_details && detailsResponse.payment_details.length > 0) {
-                                detailsResponse.payment_details.forEach(function(detail) {
-                                    var row = '<tr>' +
-                                        '<td>' + (detail.payment_category || '') + '</td>' +
-                                        '<td>' + (detail.payment_type || '') + '</td>' +
-                                        '<td>' + (detail.cheque_number || '') + '</td>' +
-                                        '<td>' + parseFloat(detail.ptm_amount || 0).toFixed(2) + '</td>' +
-                                        '<td>' + (detail.payment_date || '') + '</td>' +
-                                        '</tr>';
-                                    $('#itemDetailsTable tbody').append(row);
-                                    totalAmount += parseFloat(detail.ptm_amount || 0);
-                                });
-                            } else {
-                                $('#itemDetailsTable tbody').append('<tr><td colspan="5" class="text-center">No payment details found.</td></tr>');
-                            }
-                            $('#totalItemAmount').text(totalAmount.toFixed(2));
-                            $('#itemDetailsModal').modal('show');
-                        },
-                        error: function(xhr, status, error) {
-                            console.error('AJAX Error:', xhr.responseText);
-                            $('#itemDetailsTable tbody').append('<tr><td colspan="5" class="text-center">Error loading payment details.</td></tr>');
-                            $('#itemDetailsModal').modal('show');
-                        }
+                var totalAmount = 0;
+                if (response.success && response.payment_details && response.payment_details.length > 0) {
+                    response.payment_details.forEach(function(detail) {
+                        var row = '<tr>' +
+                            '<td>' + (detail.payment_category || '') + '</td>' +
+                            '<td>' + (detail.payment_type || '') + '</td>' +
+                            '<td>' + (detail.cheque_number || '') + '</td>' +
+                            '<td>' + parseFloat(detail.ptm_amount || 0).toFixed(2) + '</td>' +
+                            '<td>' + (detail.payment_date || '') + '</td>' +
+                            '</tr>';
+                        $('#itemDetailsTable tbody').append(row);
+                        totalAmount += parseFloat(detail.ptm_amount || 0);
                     });
                 } else {
-                    alert('Failed to load payment details: ' + (response.message || 'Unknown error.'));
+                    $('#itemDetailsTable tbody').append('<tr><td colspan="5" class="text-center">No payment details found.</td></tr>');
                 }
+                $('#totalItemAmount').text(totalAmount.toFixed(2));
+                $('#itemDetailsModal').modal('show');
             },
             error: function(xhr, status, error) {
-                alert('Error loading item details.');
-                console.error("AJAX Error: ", status, error, xhr.responseText);
+                $('#itemDetailsTable tbody').append('<tr><td colspan="5" class="text-center">Error loading payment details.</td></tr>');
+                $('#itemDetailsModal').modal('show');
             }
         });
     });

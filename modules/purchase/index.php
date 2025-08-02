@@ -166,10 +166,11 @@ $(document).ready(function() {
         $('#detailsModalBody').html('<div class="text-center"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...</div>');
         $('#detailsModal').modal('show');
         $.ajax({
-            url: 'fetch_purchase_details.php',
+            url: 'fetch_purchase_details.php?t=' + Date.now(),
             method: 'POST',
             data: { purchase_id: purchaseId },
             dataType: 'html',
+            cache: false,
             success: function(data) {
                 $('#detailsModalBody').html(data);
             },

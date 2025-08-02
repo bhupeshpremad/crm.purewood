@@ -55,15 +55,15 @@ if (isset($_GET['jci_number'])) {
         $suppliers = [];
 
         // Fetch purchase_main id linked to po_id from jci_main
-        $stmt_purchase_main = $conn->prepare("SELECT id FROM purchase_main WHERE jci_number = ? LIMIT 1");
+        $stmt_purchase_main = $conn->prepare("SELECT pm.id FROM purchase_main pm JOIN jci_main jm ON pm.jci_number = jm.jci_number WHERE jm.jci_number = ? LIMIT 1");
         $stmt_purchase_main->execute([$jci_number]);
         $purchase_main_id = $stmt_purchase_main->fetchColumn();
 
         if ($purchase_main_id) {
             $all_items = [];
 
-            // Fetch purchase_items for the purchase_main_id with invoice details
-            $stmt_purchase_items = $conn->prepare("SELECT supplier_name, product_type, product_name as item_name, assigned_quantity as quantity, price, total as item_amount, invoice_number, date as invoice_date FROM purchase_items WHERE purchase_main_id = ?");
+            // Fetch ALL purchase_items for the purchase_main_id (including those without invoice details)
+$stmt_purchase_items = $conn->prepare("SELECT id, supplier_name, product_type, product_name as item_name, assigned_quantity as quantity, price, total as item_amount, invoice_number, date as invoice_date, amount as invoice_amount FROM purchase_items WHERE purchase_main_id = ?");
             $stmt_purchase_items->execute([$purchase_main_id]);
             $purchase_items = $stmt_purchase_items->fetchAll(PDO::FETCH_ASSOC);
             $all_items = array_merge($all_items, $purchase_items);
@@ -80,23 +80,28 @@ if (isset($_GET['jci_number'])) {
             $grouped_suppliers = [];
             foreach ($all_items as $item) {
                 $supplier_name = $item['supplier_name'] ?? 'Unknown Supplier';
-                if (!isset($grouped_suppliers[$supplier_name])) {
-                    $grouped_suppliers[$supplier_name] = [
-                        'supplier_name' => $supplier_name,
-                        'invoice_number' => $item['invoice_number'] ?? null,
-                        'invoice_date' => $item['invoice_date'] ?? null,
-                        'invoice_amount' => 0,
-                        'items' => []
-                    ];
+if (!isset($grouped_suppliers[$supplier_name])) {
+    $grouped_suppliers[$supplier_name] = [
+        'id' => md5($supplier_name . $item['invoice_number']), // unique supplier id based on supplier name + invoice
+        'supplier_name' => $supplier_name,
+        'invoice_number' => $item['invoice_number'] ?? null,
+        'invoice_date' => $item['invoice_date'] ?? null,
+        'invoice_amount' => floatval($item['invoice_amount'] ?? 0),
+        'items' => []
+    ];
+}
+$grouped_suppliers[$supplier_name]['items'][] = [
+    'id' => $item['id'],
+    'item_name' => $item['item_name'],
+    'product_type' => $item['product_type'] ?? '',
+    'item_quantity' => floatval($item['quantity']),
+    'item_price' => floatval($item['price']),
+    'item_amount' => floatval($item['quantity']) * floatval($item['price'])
+];
+                // Use the actual invoice_amount from purchase_items instead of calculating
+                if (!$grouped_suppliers[$supplier_name]['invoice_amount']) {
+                    $grouped_suppliers[$supplier_name]['invoice_amount'] = floatval($item['invoice_amount'] ?? 0);
                 }
-                $grouped_suppliers[$supplier_name]['items'][] = [
-                    'item_name' => $item['item_name'],
-                    'product_type' => $item['product_type'] ?? '',
-                    'item_quantity' => $item['quantity'],
-                    'item_price' => $item['price'],
-                    'item_amount' => $item['item_amount']
-                ];
-                $grouped_suppliers[$supplier_name]['invoice_amount'] += floatval($item['item_amount']);
                 
                 // Update invoice details if not set
                 if (!$grouped_suppliers[$supplier_name]['invoice_number'] && !empty($item['invoice_number'])) {

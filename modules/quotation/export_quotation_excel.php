@@ -4,7 +4,6 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Clean output buffer to prevent accidental output
 if (ob_get_length()) ob_end_clean();
 
 require __DIR__ . '/../../vendor/autoload.php';
@@ -15,6 +14,8 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
 include_once __DIR__ . '/../../config/config.php';
 
+global $conn;
+
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     exit('Invalid quotation ID');
 }
@@ -22,29 +23,15 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 $quotationId = intval($_GET['id']);
 
 try {
-    // Initialize database connection using Database class from config.php
-    // $database = new Database();
-    // $conn = $database->getConnection();
-
-    /** @var PDO $conn */
-    global $conn;
-
     if (!$conn) {
         throw new Exception('Database connection not initialized.');
     }
 
-    // Fetch quotation data
-    /** @var PDOStatement $stmt */
     $stmt = $conn->prepare("SELECT * FROM quotations WHERE id = ?");
     $stmt->execute([$quotationId]);
     $quotation = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$quotation) exit('Quotation not found');
 
-    if (!$quotation) {
-        exit('Quotation not found');
-    }
-
-    // Fetch products for this quotation
-    /** @var PDOStatement $stmt2 */
     $stmt2 = $conn->prepare("SELECT * FROM quotation_products WHERE quotation_id = ?");
     $stmt2->execute([$quotationId]);
     $products = $stmt2->fetchAll(PDO::FETCH_ASSOC);
@@ -52,237 +39,195 @@ try {
     $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
 
+    $spreadsheet->getProperties()
+        ->setCreator('Purewood')
+        ->setTitle('Quotation Export')
+        ->setSubject('Quotation Export')
+        ->setDescription('Exported Quotation in Excel format');
+
+    $sheet->setCellValue('A1', 'PUREWOOD');
+    $sheet->mergeCells('A1:T1');
+    $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+    $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+    // --- START OF REVISED LAYOUT FOR HEADER BLOCKS ---
+
+    // Seller Details - Occupying Rows 2 to 5
+    $sheet->setCellValue('A2', 'Seller Details');
+    $sheet->mergeCells('A2:D2');
+    $sheet->getStyle('A2')->getFont()->setBold(true);
+    $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+    $sheet->setCellValue('A3', 'Purewood');
+    $sheet->setCellValue('A4', 'G178 Special Economy Area (SEZ)');
+    $sheet->setCellValue('A5', 'Export Promotion Industrial Park (EPIP)');
+    // Place GST information immediately after EPIP in the same block
+    $sheet->setCellValue('A6', 'Boranada, Jodhpur, Rajasthan, India (342001) GST: 08AAQFP4054K1ZQ'); // Combined into one line for A6
+    
+    // Adjust style for the seller address block
+    $sheet->getStyle('A3:A6')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+    $sheet->getStyle('A3:A6')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
 
 
-// Set document properties
-$spreadsheet->getProperties()
-    ->setCreator('Purewood')
-    ->setTitle('Quotation Export')
-    ->setSubject('Quotation Export')
-    ->setDescription('Exported Quotation in Excel format');
+    // Buyer Details - Occupying Rows 2 to 5, horizontally aligned with Seller Details
+    $sheet->setCellValue('E2', 'Buyer Details');
+    $sheet->mergeCells('E2:H2');
+    $sheet->getStyle('E2')->getFont()->setBold(true);
+    $sheet->getStyle('E2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+    $sheet->setCellValue('E3', $quotation['customer_name'] ?? '');
+    $sheet->setCellValue('E4', $quotation['customer_email'] ?? '');
+    $sheet->setCellValue('E5', $quotation['customer_phone'] ?? '');
+    $sheet->getStyle('E3:E5')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+    $sheet->getStyle('E3:E5')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
 
-// Set main title
-$sheet->setCellValue('A1', 'PUREWOOD');
-$sheet->mergeCells('A1:T1');
-$sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-$sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+    // Payment/Delivery Terms - Occupying Rows 2 to 3, horizontally aligned
+    $sheet->setCellValue('J2', 'Payment Terms: ' . ($quotation['delivery_term'] ?? '60 Days'));
+    $sheet->mergeCells('J2:L2');
+    $sheet->getStyle('J2:L2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
 
-// Seller Details block
-$sheet->setCellValue('A2', 'Seller Details');
-$sheet->mergeCells('A2:D2');
-$sheet->getStyle('A2')->getFont()->setBold(true);
-$sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
-$sheet->setCellValue('A3', 'Purewood');
-$sheet->setCellValue('A4', 'G178 Special Economy Area (SEZ)');
-$sheet->setCellValue('A5', 'Export Promotion Industrial Park (EPIP)');
-$sheet->setCellValue('A6', 'Boranada, Jodhpur, Rajasthan');
-$sheet->setCellValue('A7', 'India (342001) GST: 08AAQFP4054K1ZQ');
-$sheet->getStyle('A3:A7')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
-$sheet->getStyle('A3:A7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+    $sheet->setCellValue('J3', 'Terms of Delivery: ' . ($quotation['terms_of_delivery'] ?? 'FOB'));
+    $sheet->mergeCells('J3:L3');
+    $sheet->getStyle('J3:L3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
 
-// Buyer Details block
-$sheet->setCellValue('E2', 'Buyer Details');
-$sheet->mergeCells('E2:H2');
-$sheet->getStyle('E2')->getFont()->setBold(true);
-$sheet->getStyle('E2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
-// Assuming buyer details are in $quotation array
-$sheet->setCellValue('E3', $quotation['customer_name'] ?? '');
-$sheet->setCellValue('E4', $quotation['customer_address'] ?? '');
-$sheet->setCellValue('E5', $quotation['customer_city'] ?? '');
-$sheet->setCellValue('E6', $quotation['customer_state'] ?? '');
-$sheet->setCellValue('E7', $quotation['customer_country'] ?? '');
-$sheet->getStyle('E3:E7')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
-$sheet->getStyle('E3:E7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+    // Quote Number & Date - Occupying Rows 2 to 3, horizontally aligned
+    $sheet->setCellValue('O2', 'Quote Number: ' . ($quotation['quotation_number'] ?? ''));
+    $sheet->mergeCells('O2:T2');
+    $sheet->getStyle('O2:T2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
 
-// Payment Terms block
-$sheet->setCellValue('J2', 'Payment Terms');
-$sheet->setCellValue('K2', $quotation['delivery_term'] ?? '60 Days');
-$sheet->mergeCells('J2:L2');
-$sheet->getStyle('J2:L2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+    $sheet->setCellValue('O3', 'Date of Quote Raised: ' . ($quotation['quotation_date'] ?? ''));
+    $sheet->mergeCells('O3:T3');
+    $sheet->getStyle('O3:T3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
 
-// Terms of Delivery block
-$sheet->setCellValue('J3', 'Terms of Delivery');
-$sheet->setCellValue('K3', $quotation['terms_of_delivery'] ?? 'FOB');
-$sheet->mergeCells('J3:L3');
-$sheet->getStyle('J3:L3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+    // --- END OF REVISED LAYOUT FOR HEADER BLOCKS ---
 
-// Payment Term block
-$sheet->setCellValue('J4', 'Payment Term');
-$sheet->setCellValue('K4', $quotation['payment_term'] ?? '30% advance 70% on DOCS');
-$sheet->mergeCells('J4:L4');
-$sheet->getStyle('J4:L4')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+    // The product table header will now reliably start after these header blocks.
+    // We can define the header starting row based on the last row used in the top header section.
+    // In this case, seller details go up to A6, so the next available row for product headers is row 7.
+    $headerRow = 7;
+    $sheet->getStyle("A$headerRow:R$headerRow")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+    $sheet->getStyle("A$headerRow:R$headerRow")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('4B612C');
+    $sheet->getStyle("A$headerRow:R$headerRow")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+    $sheet->getStyle("A$headerRow:R$headerRow")->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
 
-// Quote Number block
-$sheet->setCellValue('O2', 'Quote Number');
-$sheet->setCellValue('P2', $quotation['quotation_number'] ?? '');
-$sheet->mergeCells('O2:T2');
-$sheet->getStyle('O2:T2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+    $sheet->mergeCells("C$headerRow:E$headerRow");
+    $sheet->mergeCells("F$headerRow:H$headerRow");
+    $sheet->mergeCells("I$headerRow:K$headerRow");
 
-// Date of Quote Raised block
-$sheet->setCellValue('O3', 'Date of Quote Raised');
-$sheet->setCellValue('P3', $quotation['quotation_date'] ?? '');
-$sheet->mergeCells('O3:T3');
-$sheet->getStyle('O3:T3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+    $sheet->setCellValue("A$headerRow", 'Sno');
+    $sheet->setCellValue("B$headerRow", 'Image');
+    $sheet->setCellValue("C$headerRow", 'Item Name/ Code');
+    $sheet->setCellValue("F$headerRow", 'Item Dimension');
+    $sheet->setCellValue("I$headerRow", 'Box Dimension');
+    $sheet->setCellValue("L$headerRow", 'CBM');
+    $sheet->setCellValue("M$headerRow", 'Wood/ Marble Type');
+    $sheet->setCellValue("N$headerRow", 'No of Packet');
+    $sheet->setCellValue("O$headerRow", 'Quantity');
+    $sheet->setCellValue("P$headerRow", 'Price USD');
+    $sheet->setCellValue("Q$headerRow", 'Total');
+    $sheet->setCellValue("R$headerRow", 'Comments');
 
-// Style header row (row 6)
-$headerRow = 6;
-$sheet->getStyle("A$headerRow:T$headerRow")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
-$sheet->getStyle("A$headerRow:T$headerRow")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('4B612C');
-$sheet->getStyle("A$headerRow:T$headerRow")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-$sheet->getStyle("A$headerRow:T$headerRow")->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+    $subHeaderRow = 8; // Moved down to accommodate the combined A6 line
+    $sheet->setCellValue("C$subHeaderRow", 'Item Name');
+    $sheet->setCellValue("D$subHeaderRow", 'Item Code');
+    $sheet->setCellValue("E$subHeaderRow", 'Assembly');
+$sheet->setCellValue("F$subHeaderRow", 'W');
+$sheet->setCellValue("G$subHeaderRow", 'D');
+$sheet->setCellValue("H$subHeaderRow", 'H');
+$sheet->setCellValue("I$subHeaderRow", 'W');
+$sheet->setCellValue("J$subHeaderRow", 'D');
+$sheet->setCellValue("K$subHeaderRow", 'H');
 
-// Merge cells for grouped headers
-$sheet->mergeCells("F$headerRow:H$headerRow"); // Item Dimension
-$sheet->mergeCells("I$headerRow:K$headerRow"); // Box Dimension
+    $sheet->getStyle("A$subHeaderRow:R$subHeaderRow")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+    $sheet->getStyle("A$subHeaderRow:R$subHeaderRow")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('4B612C');
+    $sheet->getStyle("A$subHeaderRow:R$subHeaderRow")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+    $sheet->getStyle("A$subHeaderRow:R$subHeaderRow")->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
 
-// Set header titles with merged cells
-$sheet->setCellValue("A$headerRow", 'Sno');
-$sheet->setCellValue("B$headerRow", 'Image');
-$sheet->setCellValue("C$headerRow", 'Item Name/ Code');
-$sheet->setCellValue("D$headerRow", 'Description');
-$sheet->setCellValue("E$headerRow", 'Assembly');
-$sheet->setCellValue("F$headerRow", 'Item Dimension');
-$sheet->setCellValue("I$headerRow", 'Box Dimension');
-$sheet->setCellValue("L$headerRow", 'CBM');
-$sheet->setCellValue("M$headerRow", 'Wood/ Marble Type');
-$sheet->setCellValue("N$headerRow", 'No of Packet');
-$sheet->setCellValue("O$headerRow", 'Iron Gauge');
-$sheet->setCellValue("P$headerRow", 'MDF Finish');
-$sheet->setCellValue("Q$headerRow", 'MOQ');
-$sheet->setCellValue("R$headerRow", 'Price USD');
-$sheet->setCellValue("S$headerRow", 'Total');
-$sheet->setCellValue("T$headerRow", 'Comments');
+    $row = 9; // Product data now starts on row 9
+    $serial = 1;
+    foreach ($products as $product) {
+        $sheet->setCellValue("A$row", $serial);
+        $sheet->getRowDimension($row)->setRowHeight(75);
 
-// Add sub-headers for Item Dimension and Box Dimension in row 7
-$subHeaderRow = 7;
-$sheet->setCellValue("F$subHeaderRow", 'H');
-$sheet->setCellValue("G$subHeaderRow", 'W');
-$sheet->setCellValue("H$subHeaderRow", 'D');
-$sheet->setCellValue("I$subHeaderRow", 'H');
-$sheet->setCellValue("J$subHeaderRow", 'W');
-$sheet->setCellValue("K$subHeaderRow", 'D');
+        $imageInserted = false;
+        if (!empty($product['product_image_name'])) {
+            $baseImagePath = ROOT_DIR_PATH . 'assets/images/upload/quotation/';
+            $imageFileName = $product['product_image_name'];
 
-// Style sub-header row
-$sheet->getStyle("A$subHeaderRow:T$subHeaderRow")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
-$sheet->getStyle("A$subHeaderRow:T$subHeaderRow")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('4B612C');
-$sheet->getStyle("A$subHeaderRow:T$subHeaderRow")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-$sheet->getStyle("A$subHeaderRow:T$subHeaderRow")->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            $imagePath = realpath($baseImagePath . $imageFileName);
 
- // Fill product rows starting from row 8
-$row = 8;
-$serial = 1;
-foreach ($products as $product) {
-    $sheet->setCellValue("A$row", $serial);
-
-    // Insert image if available and file exists
-    if (!empty($product['product_image_name'])) {
-        // Construct full image path based on known base directory and image file name
-        $baseImagePath = realpath(__DIR__ . '/../../assets/images/upload/quotation/');
-        $imageFileName = $product['product_image_name'];
-        $imagePath = $baseImagePath . DIRECTORY_SEPARATOR . $imageFileName;
-
-        // Log the image path being checked
-        error_log("Checking image path: " . $imagePath);
-
-        // Check if image file exists before inserting
-        if (file_exists($imagePath)) {
-            error_log("Inserting image: " . $imagePath);
-
-            $drawing = new Drawing();
-            $drawing->setName('Product Image');
-            $drawing->setDescription('Product Image');
-            $drawing->setPath($imagePath);
-            $drawing->setHeight(50);
-            $drawing->setWidth(40);
-            $drawing->setCoordinates("B$row");
-            $drawing->setOffsetX(5);
-            $drawing->setOffsetY(5);
-            $drawing->setWorksheet($sheet);
-        } else {
-            error_log("Image file not found: " . $imagePath);
-
-            // Test with a hardcoded image path to verify insertion works
-            $testImagePath = realpath(__DIR__ . '/../../assets/images/upload/quotation/test_image.jpg');
-            if ($testImagePath && file_exists($testImagePath)) {
-                error_log("Inserting test image: " . $testImagePath);
+            if ($imagePath && file_exists($imagePath)) {
                 $drawing = new Drawing();
-                $drawing->setName('Test Image');
-                $drawing->setDescription('Test Image');
-                $drawing->setPath($testImagePath);
-                $drawing->setHeight(60);
+                $drawing->setName('Product Image');
+                $drawing->setDescription('Product Image');
+                $drawing->setPath($imagePath);
+                $drawing->setHeight(70);
+                $drawing->setWidth(70);
                 $drawing->setCoordinates("B$row");
                 $drawing->setOffsetX(5);
                 $drawing->setOffsetY(5);
                 $drawing->setWorksheet($sheet);
+                $imageInserted = true;
             } else {
-                error_log("Test image not found: " . $testImagePath);
+                error_log("Image not found for Excel export: " . $baseImagePath . $imageFileName);
             }
         }
+        if (!$imageInserted) {
+            $sheet->setCellValue("B$row", 'No Image');
+            $sheet->getStyle("B$row")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("B$row")->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+        }
+
+        $sheet->setCellValue("C$row", $product['item_name']);
+        $sheet->setCellValue("D$row", $product['item_code']);
+        $sheet->setCellValue("E$row", $product['assembly']);
+$sheet->setCellValue("F$row", $product['item_w']);
+$sheet->setCellValue("G$row", $product['item_d']);
+$sheet->setCellValue("H$row", $product['item_h']);
+$sheet->setCellValue("I$row", $product['box_w']);
+$sheet->setCellValue("J$row", $product['box_d']);
+$sheet->setCellValue("K$row", $product['box_h']);
+        $sheet->setCellValue("L$row", $product['cbm']);
+        $sheet->setCellValue("M$row", $product['wood_type']);
+        $sheet->setCellValue("N$row", $product['no_of_packet']);
+        $sheet->setCellValue("O$row", $product['quantity']);
+        $sheet->setCellValue("P$row", $product['price_usd']);
+        $total = is_numeric($product['quantity']) && is_numeric($product['price_usd']) ? ($product['quantity'] * $product['price_usd']) : 0;
+        $sheet->setCellValue("Q$row", $total);
+        $sheet->setCellValue("R$row", $product['comments']);
+        $row++;
+        $serial++;
     }
 
-    $sheet->setCellValue("C$row", $product['item_name'] . "\n" . $product['item_code']);
-    $sheet->setCellValue("D$row", $product['description']);
-    $sheet->setCellValue("E$row", $product['assembly']);
-    $sheet->setCellValue("F$row", $product['item_h']);
-    $sheet->setCellValue("G$row", $product['item_w']);
-    $sheet->setCellValue("H$row", $product['item_d']);
-    $sheet->setCellValue("I$row", $product['box_h']);
-    $sheet->setCellValue("J$row", $product['box_w']);
-    $sheet->setCellValue("K$row", $product['box_d']);
-    $sheet->setCellValue("L$row", $product['cbm']);
-    $sheet->setCellValue("M$row", $product['wood_type']);
-    $sheet->setCellValue("N$row", $product['no_of_packet']);
-    $sheet->setCellValue("O$row", $product['iron_gauge']);
-    $sheet->setCellValue("P$row", $product['mdf_finish']);
-    $sheet->setCellValue("Q$row", $product['moq']);
-    $sheet->setCellValue("R$row", $product['price_usd']);
-    $sheet->setCellValue("S$row", $product['total']);
-    $sheet->setCellValue("T$row", $product['comments']);
-    $row++;
-    $serial++;
-}
+    foreach (range('A', 'R') as $column) {
+        $sheet->getColumnDimension($column)->setAutoSize(true);
+    }
 
-// Set column widths for better appearance
-$columnWidths = [
-    'A' => 6, 'B' => 15, 'C' => 20, 'D' => 30, 'E' => 10,
-    'F' => 8, 'G' => 8, 'H' => 8, 'I' => 8, 'J' => 8,
-    'K' => 8, 'L' => 10, 'M' => 15, 'N' => 10, 'O' => 10,
-    'P' => 10, 'Q' => 8, 'R' => 12, 'S' => 12, 'T' => 20
-];
-foreach ($columnWidths as $col => $width) {
-    $sheet->getColumnDimension($col)->setWidth($width);
-}
+    $sheet->getColumnDimension('B')->setWidth(12);
+    $sheet->getColumnDimension('C')->setWidth(20);
+    $sheet->getColumnDimension('D')->setWidth(15);
+    $sheet->getColumnDimension('E')->setWidth(15);
+    $sheet->getColumnDimension('R')->setWidth(30);
 
-// Apply background colors to specific columns (dark green for headers, gray for some columns)
-$darkGreen = '4B612C';
-$gray = 'D9D9D9';
+    $darkGreen = '4B612C';
+    $gray = 'D9D9D9';
+    $sheet->getStyle("I$subHeaderRow:K$subHeaderRow")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB($gray);
+    for ($r = 9; $r < $row; $r++) { // Start from row 9 (first data row)
+        $sheet->getStyle("I$r:K$r")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB($gray);
+    }
 
-// Header rows already styled with dark green
+    $lastDataRow = $row - 1;
+    // Apply borders to the entire data range including headers and subheaders
+    $sheet->getStyle("A$headerRow:R$lastDataRow")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('000000'));
 
-// Apply gray fill to columns I, J, K (Box Dimension)
-$sheet->getStyle("I$subHeaderRow:K$subHeaderRow")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB($gray);
-for ($r = $row - count($products); $r < $row; $r++) {
-    $sheet->getStyle("I$r:K$r")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB($gray);
-}
 
-// Apply borders to all cells in the data range including headers and product rows
-$lastRow = $row - 1;
-$sheet->getStyle("A$headerRow:T$lastRow")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('000000'));
-
-// Clean output buffer again before output
-if (ob_get_length()) ob_end_clean();
-
-// Output to browser
-header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header('Content-Disposition: attachment;filename="quotation_' . $quotation['quotation_number'] . '.xlsx"');
-header('Cache-Control: max-age=0');
-
-$writer = new Xlsx($spreadsheet);
-$writer->save('php://output');
-exit;
+    if (ob_get_length()) ob_end_clean();
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="quotation_' . ($quotation['quotation_number'] ?? 'Export') . '.xlsx"');
+    header('Cache-Control: max-age=0');
+    $writer = new Xlsx($spreadsheet);
+    $writer->save('php://output');
+    exit;
 
 } catch (Exception $e) {
-    // Do NOT output error to browser, log it instead in production
-    file_put_contents(__DIR__ . '/export_quotation_excel_error.log', $e->getMessage());
-    exit('Error generating Excel file.');
+    file_put_contents(__DIR__ . '/export_quotation_excel_error.log', date('Y-m-d H:i:s') . ' - ' . $e->getMessage() . "\n", FILE_APPEND);
+    exit('Error generating Excel file. Please check the error log for details.');
 }

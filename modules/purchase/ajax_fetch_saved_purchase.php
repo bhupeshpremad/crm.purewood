@@ -28,10 +28,15 @@ try {
         exit;
     }
     
-    // Fetch purchase items
-    $stmt_items = $conn->prepare("SELECT * FROM purchase_items WHERE purchase_main_id = ?");
+    // Fetch purchase items with proper data cleaning
+    $stmt_items = $conn->prepare("SELECT *, TRIM(supplier_name) as supplier_name FROM purchase_items WHERE purchase_main_id = ?");
     $stmt_items->execute([$purchase_main['id']]);
     $purchase_items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Clean supplier names to remove any whitespace issues
+    foreach ($purchase_items as &$item) {
+        $item['supplier_name'] = trim($item['supplier_name'] ?? '');
+    }
     
     echo json_encode([
         'success' => true,

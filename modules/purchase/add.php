@@ -44,12 +44,24 @@ if ($purchase_id) {
 }
 
 try {
-    // Fetch only JCIs without purchase created OR current JCI in edit mode
+    // Fetch JCIs with complete sell order numbers
     if ($edit_mode && !empty($purchase_data['jci_number'])) {
-        $stmt = $conn->prepare("SELECT jci_number, po_id, sell_order_number, bom_id FROM jci_main WHERE purchase_created = 0 OR jci_number = ? ORDER BY jci_number DESC");
+        $stmt = $conn->prepare("SELECT j.jci_number, j.po_id, j.bom_id, 
+                                      COALESCE(so.sell_order_number, TRIM(p.sell_order_number), 'N/A') as sell_order_number
+                               FROM jci_main j 
+                               LEFT JOIN po_main p ON j.po_id = p.id 
+                               LEFT JOIN sell_order so ON p.id = so.po_id 
+                               WHERE j.purchase_created = 0 OR j.jci_number = ? 
+                               ORDER BY j.jci_number DESC");
         $stmt->execute([$purchase_data['jci_number']]);
     } else {
-        $stmt = $conn->query("SELECT jci_number, po_id, sell_order_number, bom_id FROM jci_main WHERE purchase_created = 0 ORDER BY jci_number DESC");
+        $stmt = $conn->query("SELECT j.jci_number, j.po_id, j.bom_id, 
+                                    COALESCE(so.sell_order_number, TRIM(p.sell_order_number), 'N/A') as sell_order_number
+                             FROM jci_main j 
+                             LEFT JOIN po_main p ON j.po_id = p.id 
+                             LEFT JOIN sell_order so ON p.id = so.po_id 
+                             WHERE j.purchase_created = 0 
+                             ORDER BY j.jci_number DESC");
     }
     $jci_numbers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -89,11 +101,11 @@ try {
                         <small id="jobCardCount" class="form-text text-muted mt-1"></small>
                         <ul id="jobCardList" class="list-group mt-1" style="max-height: 150px; overflow-y: auto;"></ul>
                     </div>
-                    <div class="form-group col-md-4">
-                        <label for="sell_order_number_display">Sell Order Number (SON):</label>
-                        <input type="text" id="sell_order_number_display" class="form-control" readonly style="text-align: left;"
-                               value="<?php echo htmlspecialchars($purchase_data['sell_order_number'] ?? ''); ?>">
-                    </div>
+<div class="form-group col-md-4">
+    <label for="sell_order_number_display">Sell Order Number (SON):</label>
+    <input type="text" id="sell_order_number_display" class="form-control" readonly style="text-align: left; width: 100%; overflow: visible;"
+           value="<?php echo htmlspecialchars(trim($purchase_data['sell_order_number'] ?? '')); ?>">
+</div>
                     <div class="form-group col-md-4">
                         <label for="po_number_display">PO Number:</label>
                         <input type="text" id="po_number_display" class="form-control" readonly
@@ -153,7 +165,9 @@ $('#jci_number_search').on('change', function() {
     var poId = selectedOption.data('po-id');
     var sellOrderNumber = selectedOption.data('son');
 
-    $('#sell_order_number_display').val(sellOrderNumber);
+    var cleanSellOrderNumber = sellOrderNumber ? sellOrderNumber.toString().trim() : '';
+    $('#sell_order_number_display').val(cleanSellOrderNumber);
+    $('#sell_order_number').val(cleanSellOrderNumber);
     $('#purchase_id').val('');
     $('#po_number').val('');
     $('#sell_order_number').val(sellOrderNumber);
@@ -250,7 +264,7 @@ $('#jci_number_search').on('change', function() {
                                 var thead = $('<thead class="thead-light"></thead>');
                                 var tbody = $('<tbody></tbody>');
 
-                                var headerRow = $('<tr><th colspan="6">Job Card: ' + jobCard + '</th></tr>');
+                                var headerRow = $('<tr><th colspan="8">Job Card: ' + jobCard + '</th></tr>');
                                 thead.append(headerRow);
 
 var colHeaderRow = $('<tr></tr>');
@@ -258,8 +272,10 @@ colHeaderRow.append('<th><input type="checkbox" id="selectAllRows"></th>');
 colHeaderRow.append('<th>Supplier Name</th>');
 colHeaderRow.append('<th>Product Type</th>');
 colHeaderRow.append('<th>Product Name</th>');
-colHeaderRow.append('<th>Quantity</th>');
+colHeaderRow.append('<th>BOM Quantity</th>');
+colHeaderRow.append('<th>BOM Price</th>');
 colHeaderRow.append('<th>Assign Quantity</th>');
+colHeaderRow.append('<th>Status</th>');
 thead.append(colHeaderRow);
 
     bomItemsData.forEach(function(item) {
@@ -275,18 +291,26 @@ thead.append(colHeaderRow);
             });
         }
         
-        var supplierName = existingItem ? existingItem.supplier_name : '';
+        var supplierName = existingItem ? (existingItem.supplier_name || '').toString().trim() : '';
         var assignedQty = existingItem ? existingItem.assigned_quantity : '0';
         var isChecked = existingItem ? true : false;
+        var isApproved = existingItem && existingItem.invoice_number ? true : false;
         
-        console.log('Matching for item:', item, 'Found existing:', existingItem);
+        console.log('Matching for item:', item, 'Found existing:', existingItem, 'Supplier:', supplierName, 'Approved:', isApproved);
 
-        tr.append('<td><input type="checkbox" class="rowCheckbox" ' + (isChecked ? 'checked' : '') + '></td>');
-        tr.append('<td><input type="text" class="form-control form-control-sm supplierNameInput" value="' + supplierName + '"></td>');
-        tr.append('<td><input type="text" class="form-control form-control-sm productTypeInput" value="' + item.product_type + '" readonly></td>');
-        tr.append('<td><input type="text" class="form-control form-control-sm productNameInput" value="' + item.product_name + '" readonly></td>');
-        tr.append('<td><input type="number" class="form-control form-control-sm" value="' + item.quantity + '" readonly></td>');
-        tr.append('<td><input type="number" min="0" max="' + item.quantity + '" step="0.001" class="form-control form-control-sm assignQuantityInput" value="' + assignedQty + '"></td>');
+tr.append('<td><input type="checkbox" class="rowCheckbox" ' + (isChecked ? 'checked' : '') + ' ' + (isApproved ? 'disabled' : '') + '></td>');
+tr.append('<td><input type="text" class="form-control form-control-sm supplierNameInput" value="' + (supplierName || '').toString().replace(/"/g, '&quot;') + '" ' + (isApproved ? 'readonly' : '') + '></td>');
+tr.append('<td><input type="text" class="form-control form-control-sm productTypeInput" value="' + item.product_type + '" readonly></td>');
+tr.append('<td><input type="text" class="form-control form-control-sm productNameInput" value="' + item.product_name + '" readonly></td>');
+tr.append('<td><input type="number" class="form-control form-control-sm bomQuantityInput" value="' + item.quantity + '" readonly></td>');
+tr.append('<td><input type="number" class="form-control form-control-sm bomPriceInput" value="' + item.price + '" readonly></td>');
+tr.append('<td><input type="number" min="0" max="' + item.quantity + '" step="0.001" class="form-control form-control-sm assignQuantityInput" value="' + assignedQty + '" ' + (isApproved ? 'readonly' : '') + '></td>');
+if (isApproved) {
+    tr.addClass('table-success');
+    tr.append('<td><span class="badge badge-success">Approved</span></td>');
+} else {
+    tr.append('<td><span class="badge badge-warning">Pending</span></td>');
+}
 
         tbody.append(tr);
     });
@@ -307,7 +331,7 @@ thead.append(colHeaderRow);
                                         var thead = $('<thead class="thead-light"></thead>');
                                         var tbody = $('<tbody></tbody>');
 
-                                        var headerRow = $('<tr><th colspan="6">Job Card: ' + jobCard + '</th></tr>');
+                                        var headerRow = $('<tr><th colspan="8">Job Card: ' + jobCard + '</th></tr>');
                                         thead.append(headerRow);
 
                                         var colHeaderRow = $('<tr></tr>');
@@ -317,6 +341,7 @@ thead.append(colHeaderRow);
                                         colHeaderRow.append('<th>Product Name</th>');
                                         colHeaderRow.append('<th>Quantity</th>');
                                         colHeaderRow.append('<th>Assign Quantity</th>');
+                                        colHeaderRow.append('<th>Status</th>');
                                         thead.append(colHeaderRow);
 
                                         bomItemsData.forEach(function(item) {
@@ -327,6 +352,7 @@ thead.append(colHeaderRow);
                                             tr.append('<td><input type="text" class="form-control form-control-sm productNameInput" value="' + item.product_name + '" readonly></td>');
                                             tr.append('<td><input type="number" class="form-control form-control-sm" value="' + item.quantity + '" readonly></td>');
                                             tr.append('<td><input type="number" min="0" max="' + item.quantity + '" step="0.001" class="form-control form-control-sm assignQuantityInput" value="0"></td>');
+                                            tr.append('<td><span class="badge badge-warning">Pending</span></td>');
                                             tbody.append(tr);
                                         });
 
@@ -748,8 +774,13 @@ $('#bomTableContainer table').each(function() {
                 assigned_quantity = assigned_quantity_input_element.val();
             }
             
-            var price_element = row.find('td').eq(getTableColumnIndex(categoryName, 'price')).find('input');
-            var price = price_element ? price_element.val() : '0';
+var price = '0';
+if (categoryName === 'Job Card Items') {
+    price = row.find('.bomPriceInput').val() || '0';
+} else {
+    var price_element = row.find('td').eq(getTableColumnIndex(categoryName, 'price')).find('input');
+    price = price_element ? price_element.val() : '0';
+}
 
             var total;
             if (categoryName === 'BOM Hardware') {

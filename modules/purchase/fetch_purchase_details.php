@@ -27,11 +27,16 @@ try {
         exit;
     }
 
-    // Fetch purchase items
-    $stmt_items = $conn->prepare("SELECT id, supplier_name, product_type, product_name, job_card_number, assigned_quantity, price, total, invoice_number, builty_number, amount, date 
-                                 FROM purchase_items WHERE purchase_main_id = ?");
+    // Fetch all purchase items including image paths
+    $stmt_items = $conn->prepare("SELECT id, supplier_name, product_type, product_name, job_card_number, assigned_quantity, price, total, invoice_number, builty_number, amount, date, invoice_image, builty_image 
+                                 FROM purchase_items WHERE purchase_main_id = ? 
+                                 ORDER BY id");
     $stmt_items->execute([$purchase_id]);
     $purchase_items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
+    
+
+
+    // No array manipulation needed
 
 } catch (PDOException $e) {
     echo "<div class='alert alert-danger'>Database error: " . htmlspecialchars($e->getMessage()) . "</div>";
@@ -58,15 +63,22 @@ try {
             <th>Price</th>
             <th>Total</th>
             <th>Invoice Number</th>
+            <th>Invoice Image</th>
             <th>Invoice Amount</th>
             <th>Builty Number</th>
+            <th>Builty Image</th>
             <th>Date</th>
             <th>Approve</th>
         </tr>
     </thead>
     <tbody>
         <?php if ($purchase_items && count($purchase_items) > 0): ?>
-            <?php foreach ($purchase_items as $item): ?>
+            <?php 
+            // Debug: Show what items we have
+            echo "<!-- Debug: Found " . count($purchase_items) . " items -->";
+            foreach ($purchase_items as $item): 
+                echo "<!-- Item ID: {$item['id']}, Type: {$item['product_type']}, Name: {$item['product_name']} -->";
+            ?>
                 <tr id="item-row-<?php echo $item['id']; ?>">
                     <td><?php echo htmlspecialchars($item['supplier_name']); ?></td>
                     <td><?php echo htmlspecialchars($item['product_type']); ?></td>
@@ -76,8 +88,22 @@ try {
                     <td><?php echo htmlspecialchars($item['price']); ?></td>
                     <td><?php echo htmlspecialchars($item['total']); ?></td>
                     <td class="invoice-number"><?php echo htmlspecialchars($item['invoice_number'] ?? ''); ?></td>
-                    <td class="invoice-amount"><?php echo htmlspecialchars($item['amount'] ?? ''); ?></td>
+                    <td class="invoice-image">
+                        <?php if (!empty($item['invoice_image'])): ?>
+                            <a href="<?php echo BASE_URL; ?>modules/purchase/uploads/invoice/<?php echo htmlspecialchars($item['invoice_image']); ?>" class="btn btn-sm btn-info" target="_blank">Download Invoice</a>
+                        <?php else: ?>
+                            <span class="text-muted">No Image</span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="invoice-amount"><?php echo !empty($item['amount']) ? htmlspecialchars(floatval($item['amount'])) : htmlspecialchars(floatval($item['total'])); ?></td>
                     <td class="builty-number"><?php echo htmlspecialchars($item['builty_number'] ?? ''); ?></td>
+                    <td class="builty-image">
+                        <?php if (!empty($item['builty_image'])): ?>
+                            <a href="<?php echo BASE_URL; ?>modules/purchase/uploads/Builty/<?php echo htmlspecialchars($item['builty_image']); ?>" class="btn btn-sm btn-success" target="_blank">Download Builty</a>
+                        <?php else: ?>
+                            <span class="text-muted">No Image</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="item-date"><?php echo htmlspecialchars($item['date'] ?? ''); ?></td>
                     <td>
                         <?php if (!empty($item['invoice_number']) && !empty($item['builty_number'])): ?>
@@ -89,7 +115,7 @@ try {
                 </tr>
             <?php endforeach; ?>
         <?php else: ?>
-            <tr><td colspan="12" class="text-center">No purchase items found.</td></tr>
+            <tr><td colspan="14" class="text-center">No purchase items found.</td></tr>
         <?php endif; ?>
     </tbody>
 </table>
