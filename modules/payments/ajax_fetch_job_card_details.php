@@ -76,39 +76,42 @@ $stmt_purchase_items = $conn->prepare("SELECT id, supplier_name, product_type, p
                 'all_items' => $all_items
             ];
 
-            // Group items by supplier_name
+            // Group items by supplier_name and invoice_number (only items with invoices)
             $grouped_suppliers = [];
             foreach ($all_items as $item) {
                 $supplier_name = $item['supplier_name'] ?? 'Unknown Supplier';
-if (!isset($grouped_suppliers[$supplier_name])) {
-    $grouped_suppliers[$supplier_name] = [
-        'id' => md5($supplier_name . $item['invoice_number']), // unique supplier id based on supplier name + invoice
-        'supplier_name' => $supplier_name,
-        'invoice_number' => $item['invoice_number'] ?? null,
-        'invoice_date' => $item['invoice_date'] ?? null,
-        'invoice_amount' => floatval($item['invoice_amount'] ?? 0),
-        'items' => []
-    ];
-}
-$grouped_suppliers[$supplier_name]['items'][] = [
-    'id' => $item['id'],
-    'item_name' => $item['item_name'],
-    'product_type' => $item['product_type'] ?? '',
-    'item_quantity' => floatval($item['quantity']),
-    'item_price' => floatval($item['price']),
-    'item_amount' => floatval($item['quantity']) * floatval($item['price'])
-];
-                // Use the actual invoice_amount from purchase_items instead of calculating
-                if (!$grouped_suppliers[$supplier_name]['invoice_amount']) {
-                    $grouped_suppliers[$supplier_name]['invoice_amount'] = floatval($item['invoice_amount'] ?? 0);
+                $invoice_number = $item['invoice_number'] ?? null;
+                
+                // Only include items that have invoice numbers
+                if (empty($invoice_number)) {
+                    continue;
                 }
                 
-                // Update invoice details if not set
-                if (!$grouped_suppliers[$supplier_name]['invoice_number'] && !empty($item['invoice_number'])) {
-                    $grouped_suppliers[$supplier_name]['invoice_number'] = $item['invoice_number'];
+                $supplier_key = $supplier_name . '_' . $invoice_number;
+                
+                if (!isset($grouped_suppliers[$supplier_key])) {
+                    $grouped_suppliers[$supplier_key] = [
+                        'id' => md5($supplier_key),
+                        'supplier_name' => $supplier_name,
+                        'invoice_number' => $invoice_number,
+                        'invoice_date' => $item['invoice_date'] ?? null,
+                        'invoice_amount' => floatval($item['invoice_amount'] ?? 0),
+                        'items' => []
+                    ];
                 }
-                if (!$grouped_suppliers[$supplier_name]['invoice_date'] && !empty($item['invoice_date'])) {
-                    $grouped_suppliers[$supplier_name]['invoice_date'] = $item['invoice_date'];
+                
+                $grouped_suppliers[$supplier_key]['items'][] = [
+                    'id' => $item['id'],
+                    'item_name' => $item['item_name'],
+                    'product_type' => $item['product_type'] ?? '',
+                    'item_quantity' => floatval($item['quantity']),
+                    'item_price' => floatval($item['price']),
+                    'item_amount' => floatval($item['quantity']) * floatval($item['price'])
+                ];
+                
+                // Use the actual invoice_amount from purchase_items
+                if ($item['invoice_amount'] && floatval($item['invoice_amount']) > 0) {
+                    $grouped_suppliers[$supplier_key]['invoice_amount'] = floatval($item['invoice_amount']);
                 }
             }
 

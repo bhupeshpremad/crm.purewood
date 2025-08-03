@@ -9,7 +9,30 @@ if (isset($_GET['payment_id'])) {
     $payment_id = $_GET['payment_id'];
     
     try {
-        // Fetch payment details from payment_details table, including jc_number for Job Card payments
+        // First get the JCI number from payments table
+        $stmt_payment = $conn->prepare("SELECT jci_number FROM payments WHERE id = ?");
+        $stmt_payment->execute([$payment_id]);
+        $payment_info = $stmt_payment->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$payment_info) {
+            throw new Exception('Payment not found');
+        }
+        
+        $jci_number = $payment_info['jci_number'];
+        
+        // Get all unique suppliers by invoice number for this JCI with image data
+        $stmt_all_suppliers = $conn->prepare("
+            SELECT pi.supplier_name, pi.invoice_number, pi.amount as invoice_amount, 
+                   pi.invoice_image, pi.builty_image
+            FROM purchase_items pi 
+            JOIN purchase_main pm ON pi.purchase_main_id = pm.id 
+            WHERE pm.jci_number = ? AND pi.invoice_number IS NOT NULL AND pi.invoice_number != ''
+            GROUP BY pi.supplier_name, pi.invoice_number
+        ");
+        $stmt_all_suppliers->execute([$jci_number]);
+        $suppliers_data = $stmt_all_suppliers->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Fetch payment details from payment_details table
         $stmt = $conn->prepare(
             "SELECT 
                 id, 
@@ -20,29 +43,113 @@ if (isset($_GET['payment_id'])) {
                 ptm_amount, 
                 payment_date, 
                 payment_invoice_date, 
-                invoice_number, 
-                payment_id,
-                jc_number -- include jc_number for Job Card
+                jc_number
             FROM payment_details 
             WHERE payment_id = ?"
         );
         $stmt->execute([$payment_id]);
         $payment_details = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Add payee and entity_id fields for frontend matching and readonly logic
+        // Get supplier names from purchase_items for this JCI
+        $supplier_names = [];
+        $stmt_suppliers = $conn->prepare("
+            SELECT DISTINCT pi.supplier_name, pi.invoice_number 
+            FROM purchase_items pi 
+            JOIN purchase_main pm ON pi.purchase_main_id = pm.id 
+            WHERE pm.jci_number = ?
+        ");
+        $stmt_suppliers->execute([$jci_number]);
+        $suppliers = $stmt_suppliers->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Create a mapping of supplier names
+        foreach ($suppliers as $supplier) {
+            $supplier_names[$supplier['supplier_name']] = $supplier['supplier_name'];
+        }
+        
+        // Get contractor names from jci_items for this JCI
+        $contractor_names = [];
+        $stmt_contractors = $conn->prepare("
+            SELECT DISTINCT ji.contracture_name 
+            FROM jci_items ji 
+            JOIN jci_main jm ON ji.jci_id = jm.id 
+            WHERE jm.jci_number = ?
+        ");
+        $stmt_contractors->execute([$jci_number]);
+        $contractors = $stmt_contractors->fetchAll(PDO::FETCH_ASSOC);
+
+        // Debug: log what we found
+        error_log("Payment ID: $payment_id, JCI: $jci_number, Payment details count: " . count($payment_details));
+        
+        // Enhance payment details with supplier/contractor names
         foreach ($payment_details as &$detail) {
-            $detail['payee'] = '';
-            // Use payment_details.id as entity_id for uniqueness in frontend
-            $detail['entity_id'] = $detail['id'];
+            if (!isset($detail['supplier_name'])) {
+                $detail['supplier_name'] = '';
+            }
+            if (!isset($detail['contracture_name'])) {
+                $detail['contracture_name'] = '';
+            }
+            if (!isset($detail['status'])) {
+                $detail['status'] = 'paid';
+            }
 
             if ($detail['payment_category'] === 'Job Card') {
-                $detail['payee'] = 'Job Card: ' . ($detail['jc_number'] ?? '');
-            } elseif ($detail['payment_category'] === 'Supplier') {
-                $detail['payee'] = 'Supplier Payment';
+                // For job card payments, try to get contractor name
+                if (!empty($contractors)) {
+                    $detail['contracture_name'] = $contractors[0]['contracture_name'] ?? 'Job Card Payment';
+                } else {
+                    $detail['contracture_name'] = 'Job Card Payment';
+                }
+            } elseif ($detail['payment_category'] === 'Supplier' && empty($detail['supplier_name'])) {
+                // For supplier payments, get any supplier name from this JCI
+                $stmt_supplier = $conn->prepare("
+                    SELECT pi.supplier_name 
+                    FROM purchase_items pi 
+                    JOIN purchase_main pm ON pi.purchase_main_id = pm.id 
+                    WHERE pm.jci_number = ? AND pi.invoice_number IS NOT NULL
+                    LIMIT 1
+                ");
+                $stmt_supplier->execute([$jci_number]);
+                $supplier_result = $stmt_supplier->fetch(PDO::FETCH_ASSOC);
+                
+                $detail['supplier_name'] = $supplier_result['supplier_name'] ?? 'Unknown Supplier';
             }
         }
         unset($detail); // break reference
 
+        // Add pending suppliers to payment details
+        foreach ($suppliers_data as $supplier) {
+            // Check if this specific supplier+invoice combination already has a payment
+            $has_payment = false;
+            foreach ($payment_details as $detail) {
+                if ($detail['payment_category'] === 'Supplier' && 
+                    $detail['supplier_name'] === $supplier['supplier_name']) {
+                    $has_payment = true;
+                    break;
+                }
+            }
+            
+            // If no payment exists, add as pending
+            if (!$has_payment) {
+                $payment_details[] = [
+                    'id' => 'pending_' . md5($supplier['supplier_name'] . $supplier['invoice_number']),
+                    'payment_category' => 'Supplier',
+                    'payment_type' => '',
+                    'cheque_number' => '',
+                    'pd_acc_number' => '',
+                    'ptm_amount' => $supplier['invoice_amount'] ?? 0,
+                    'payment_date' => '',
+                    'payment_invoice_date' => '',
+                    'jc_number' => '',
+                    'supplier_name' => $supplier['supplier_name'],
+                    'contracture_name' => '',
+                    'status' => 'pending',
+                    'invoice_number' => $supplier['invoice_number'],
+                    'invoice_image' => $supplier['invoice_image'] ?? '',
+                    'builty_image' => $supplier['builty_image'] ?? ''
+                ];
+            }
+        }
+        
         $response['success'] = true;
         $response['payment_details'] = $payment_details;
         

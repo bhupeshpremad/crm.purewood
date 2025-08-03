@@ -90,7 +90,16 @@ try {
                     <td class="invoice-number"><?php echo htmlspecialchars($item['invoice_number'] ?? ''); ?></td>
                     <td class="invoice-image">
                         <?php if (!empty($item['invoice_image'])): ?>
-                            <a href="<?php echo BASE_URL; ?>modules/purchase/uploads/invoice/<?php echo htmlspecialchars($item['invoice_image']); ?>" class="btn btn-sm btn-info" target="_blank">Download Invoice</a>
+                            <?php 
+                            $invoice_image_path = __DIR__ . '/uploads/invoice/' . $item['invoice_image'];
+                            if (file_exists($invoice_image_path)): ?>
+                                <img src="<?php echo BASE_URL; ?>modules/purchase/uploads/invoice/<?php echo htmlspecialchars($item['invoice_image']); ?>" 
+                                     style="width: 60px; height: 60px; object-fit: cover; cursor: pointer;" 
+                                     onclick="window.open('<?php echo BASE_URL; ?>modules/purchase/uploads/invoice/<?php echo htmlspecialchars($item['invoice_image']); ?>', '_blank')" 
+                                     title="Click to view full image">
+                            <?php else: ?>
+                                <span class="text-muted">No Image</span>
+                            <?php endif; ?>
                         <?php else: ?>
                             <span class="text-muted">No Image</span>
                         <?php endif; ?>
@@ -99,7 +108,16 @@ try {
                     <td class="builty-number"><?php echo htmlspecialchars($item['builty_number'] ?? ''); ?></td>
                     <td class="builty-image">
                         <?php if (!empty($item['builty_image'])): ?>
-                            <a href="<?php echo BASE_URL; ?>modules/purchase/uploads/Builty/<?php echo htmlspecialchars($item['builty_image']); ?>" class="btn btn-sm btn-success" target="_blank">Download Builty</a>
+                            <?php 
+                            $builty_image_path = __DIR__ . '/uploads/Builty/' . $item['builty_image'];
+                            if (file_exists($builty_image_path)): ?>
+                                <img src="<?php echo BASE_URL; ?>modules/purchase/uploads/Builty/<?php echo htmlspecialchars($item['builty_image']); ?>" 
+                                     style="width: 60px; height: 60px; object-fit: cover; cursor: pointer;" 
+                                     onclick="window.open('<?php echo BASE_URL; ?>modules/purchase/uploads/Builty/<?php echo htmlspecialchars($item['builty_image']); ?>', '_blank')" 
+                                     title="Click to view full image">
+                            <?php else: ?>
+                                <span class="text-muted">No Image</span>
+                            <?php endif; ?>
                         <?php else: ?>
                             <span class="text-muted">No Image</span>
                         <?php endif; ?>

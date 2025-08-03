@@ -4,11 +4,14 @@ header('Content-Type: application/json');
 global $conn;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    error_log("Invalid request method: " . $_SERVER['REQUEST_METHOD']);
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
 }
 
 $data = $_POST;
+
+error_log("Received POST data: " . json_encode($data));
 
 $conn->beginTransaction();
 
@@ -27,6 +30,7 @@ try {
     $payment_main_id = null;
     if (!empty($data['payment_id'])) {
         $payment_main_id = $data['payment_id'];
+        error_log("Updating existing payment with ID: $payment_main_id");
         // Update existing payment record
         $stmt_update = $conn->prepare("UPDATE payments SET updated_at = NOW() WHERE id = ?");
         $stmt_update->execute([$payment_main_id]);
@@ -34,6 +38,7 @@ try {
 
     // Insert single payment record for this JCI only if new
     if (!$payment_main_id) {
+        error_log("Inserting new payment record for JCI: $jci_number");
         $stmt = $conn->prepare("INSERT INTO payments (
             jci_number,
             po_number,
@@ -53,14 +58,13 @@ try {
             ':sell_order_number' => $data['sell_order_number']
         ]);
         $payment_main_id = $conn->lastInsertId();
+        error_log("New payment record inserted with ID: $payment_main_id");
     }
 
     // Insert only new payment_details records (skip existing ones)
+    $inserted_payment_count = 0;
     foreach ($payments as $p) {
-        // Skip if this payment already exists (has payment_date and cheque_number)
-        if (!empty($p['payment_date']) && !empty($p['cheque_number'])) {
-            continue; // Skip already processed payments
-        }
+        error_log("Processing payment: " . json_encode($p));
         
         // Only process checked payments with required fields
         if (empty($p['cheque_type']) || empty($p['payment_date']) || empty($p['cheque_number'])) {
@@ -68,7 +72,15 @@ try {
             continue; // Skip incomplete payments
         }
         
-        error_log("Processing payment: " . json_encode($p));
+        // Check if this payment already exists to avoid duplicates
+        $check_stmt = $conn->prepare("SELECT id FROM payment_details WHERE payment_id = ? AND cheque_number = ? AND payment_category = ?");
+        $payment_category = $p['entity_type'] === 'job_card' ? 'Job Card' : 'Supplier';
+        $check_stmt->execute([$payment_main_id, $p['cheque_number'], $payment_category]);
+        if ($check_stmt->fetchColumn()) {
+            error_log("Payment already exists, skipping: " . $p['cheque_number']);
+            continue; // Skip if payment already exists
+        }
+        
         error_log("About to insert into payment_details with payment_id: $payment_main_id");
         
         $stmt = $conn->prepare("INSERT INTO payment_details (
@@ -115,10 +127,12 @@ try {
         
         $inserted_id = $conn->lastInsertId();
         error_log("Payment detail inserted with ID: $inserted_id, Result: " . ($result ? 'SUCCESS' : 'FAILED'));
+        $inserted_payment_count++;
     }
 
     // Update JCI main table to mark payment as completed
     if ($jci_number) {
+        error_log("Updating JCI main table for JCI: $jci_number");
         $stmt_update_jci = $conn->prepare("UPDATE jci_main SET payment_completed = 1 WHERE jci_number = ?");
         $stmt_update_jci->execute([$jci_number]);
     }
@@ -126,11 +140,17 @@ try {
     $conn->commit();
     
     // Log successful save
-    error_log("Payment saved successfully. Payment ID: $payment_main_id, JCI: $jci_number");
+    error_log("Payment saved successfully. Payment ID: $payment_main_id, JCI: $jci_number, Inserted payments: $inserted_payment_count");
 
-    echo json_encode(['success' => true, 'message' => 'Payment saved successfully', 'payment_id' => $payment_main_id]);
+    echo json_encode([
+        'success' => true, 
+        'message' => 'Payment saved successfully', 
+        'payment_id' => $payment_main_id,
+        'jci_number' => $jci_number // Pass back the JCI number
+    ]);
 } catch (Exception $e) {
     $conn->rollBack();
     error_log("Payment save failed: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Failed to save payment: ' . $e->getMessage()]);
 }
+?>

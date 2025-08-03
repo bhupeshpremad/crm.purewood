@@ -49,8 +49,8 @@ if (!in_array($builty_image['type'], $allowed_types)) {
     exit;
 }
 
-$invoice_upload_dir = __DIR__ . '/../../uploads/invoice/';
-$builty_upload_dir = __DIR__ . '/../../uploads/builty/';
+$invoice_upload_dir = __DIR__ . '/uploads/invoice/';
+$builty_upload_dir = __DIR__ . '/uploads/Builty/';
 
 if (!is_dir($invoice_upload_dir)) {
     mkdir($invoice_upload_dir, 0755, true);
