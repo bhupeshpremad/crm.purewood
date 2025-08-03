@@ -357,23 +357,39 @@ $jci_numbers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 success: function(response) {
                     if (response.success && response.payment_details) {
                         existingPayments = response.payment_details;
+                        console.log('Loaded existing payments:', existingPayments);
                     }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading existing payments:', error);
                 }
             });
             <?php endif; ?>
 
             jobCards.forEach(function(jc) {
                 // Find existing payment for this job card
-                const existingPayment = existingPayments.find(p => p.payment_category === 'Job Card' && p.jc_number === jc.jci_number);
+                const existingPayment = existingPayments.find(p => 
+                    p.payment_category === 'Job Card'
+                );
                 const isReadOnly = !!(existingPayment && existingPayment.payment_date && existingPayment.cheque_number);
+                console.log('Job Card:', jc.jci_number, 'Existing Payment:', existingPayment, 'ReadOnly:', isReadOnly);
 
-                const chequeType = isReadOnly ? existingPayment.payment_type : '';
-                const chequeNumber = isReadOnly ? existingPayment.cheque_number : '';
-                const pdAccNumber = isReadOnly ? existingPayment.pd_acc_number : '';
-                const ptmAmount = isReadOnly ? parseFloat(existingPayment.ptm_amount).toFixed(2) : parseFloat(jc.total_amount).toFixed(2);
-                const paymentDate = isReadOnly ? existingPayment.payment_date : '';
-                const invoiceNumber = isReadOnly ? existingPayment.invoice_number : '';
-                const invoiceDate = isReadOnly ? existingPayment.payment_invoice_date : '';
+                // Use existing payment data if available
+                let chequeType = '';
+                let chequeNumber = '';
+                let pdAccNumber = '';
+                let ptmAmount = parseFloat(jc.total_amount).toFixed(2);
+                let paymentDate = '';
+                let invoiceNumber = '';
+                let invoiceDate = '';
+                
+                if (existingPayment) {
+                    chequeType = existingPayment.payment_type || '';
+                    chequeNumber = existingPayment.cheque_number || '';
+                    pdAccNumber = existingPayment.pd_acc_number || '';
+                    ptmAmount = parseFloat(existingPayment.ptm_amount || jc.total_amount).toFixed(2);
+                    paymentDate = existingPayment.payment_date || '';
+                }
 
                 const disabledSelectAttr = isReadOnly ? 'disabled' : '';
                 const disabledInputAttr = isReadOnly ? 'readonly disabled' : '';
@@ -402,36 +418,53 @@ $jci_numbers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             });
 
             suppliers.forEach(function(supplier, index) {
-                // Find existing payment for this supplier by amount matching
+                // Find existing payment for this supplier by matching supplier name or invoice
                 const existingPayment = existingPayments.find(p => 
                     p.payment_category === 'Supplier' && 
-                    Math.abs(parseFloat(p.ptm_amount) - parseFloat(supplier.invoice_amount)) < 0.01
+                    (p.supplier_name === supplier.supplier_name || 
+                     (supplier.invoice_number && p.cheque_number))
                 );
                 const isReadOnly = !!(existingPayment && existingPayment.payment_date && existingPayment.cheque_number);
                 
-                console.log('Supplier:', supplier.supplier_name, 'Amount:', supplier.invoice_amount, 'Existing Payment:', existingPayment, 'ReadOnly:', isReadOnly);
+                console.log('Supplier:', supplier.supplier_name, 'Existing Payment:', existingPayment, 'ReadOnly:', isReadOnly);
+                
+                console.log('Supplier:', supplier.supplier_name, 'ID:', supplier.id, 'Amount:', supplier.invoice_amount);
+                console.log('Existing Payments:', existingPayments);
+                console.log('Matched Existing Payment:', existingPayment, 'ReadOnly:', isReadOnly);
 
-                const chequeType = isReadOnly ? existingPayment.payment_type : '';
-                const chequeNumber = isReadOnly ? existingPayment.cheque_number : '';
-                const pdAccNumber = isReadOnly ? existingPayment.pd_acc_number : '';
-                const ptmAmount = isReadOnly ? parseFloat(existingPayment.ptm_amount).toFixed(2) : parseFloat(supplier.invoice_amount || '0').toFixed(2);
-                const invoiceNumber = isReadOnly ? existingPayment.invoice_number : (supplier.invoice_number || '');
-                const invoiceDate = isReadOnly ? existingPayment.payment_invoice_date : (supplier.invoice_date || '');
-                const paymentDate = isReadOnly ? existingPayment.payment_date : '';
+                // Use existing payment data if available, otherwise use supplier data
+                let chequeType = '';
+                let chequeNumber = '';
+                let pdAccNumber = '';
+                let ptmAmount = parseFloat(supplier.invoice_amount || '0').toFixed(2);
+                let invoiceNumber = supplier.invoice_number || '';
+                let invoiceDate = supplier.invoice_date || '';
+                let paymentDate = '';
+                
+                if (existingPayment) {
+                    chequeType = existingPayment.payment_type || '';
+                    chequeNumber = existingPayment.cheque_number || '';
+                    pdAccNumber = existingPayment.pd_acc_number || '';
+                    ptmAmount = parseFloat(existingPayment.ptm_amount || 0).toFixed(2);
+                    paymentDate = existingPayment.payment_date || '';
+                }
 
                 const disabledSelectAttr = isReadOnly ? 'disabled' : '';
                 const disabledInputAttr = isReadOnly ? 'readonly disabled' : '';
                 const ptmAmountReadonlyAttr = isReadOnly ? 'readonly' : '';
                 const checkedAttr = isReadOnly ? 'checked' : '';
 
-                // Create display name with invoice info
+                // Create display name with invoice info and payment status
                 let displayName = `Supplier: ${supplier.supplier_name}`;
                 if (supplier.invoice_number) {
                     displayName += ` (Invoice: ${supplier.invoice_number})`;
                 }
+                if (isReadOnly) {
+                    displayName += ' <small class="text-muted">(Already Paid)</small>';
+                }
 
                 const newRow = `
-                    <tr class="payment-row" data-entity-type="supplier" data-entity-id="${supplier.id || ''}" data-original-amount="${ptmAmount}">
+                    <tr class="payment-row" data-entity-type="supplier" data-entity-id="${supplier.id || ''}" data-original-amount="${ptmAmount}" ${isReadOnly ? 'style="background-color: #f8f9fa;"' : ''}>
                         <td><input type="checkbox" class="select_payment" ${checkedAttr} ${isReadOnly ? 'disabled' : ''}></td>
                         <td>${displayName}</td>
                         <td style="width: 18%;min-width: 135px;">
@@ -697,5 +730,97 @@ $jci_numbers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 }
             });
         }
+
+        // Load existing payment data in edit mode
+        <?php if ($edit_mode && $existing_payment_data): ?>
+        $(document).ready(function() {
+            // Auto-select the JCI number and trigger change
+            $('#jci_number').val('<?php echo htmlspecialchars($existing_payment_data['jci_number']); ?>').trigger('change');
+            
+            // Load existing payment details after a short delay to ensure JCI data is loaded
+            setTimeout(function() {
+                loadExistingPaymentData();
+            }, 1000);
+        });
+
+        function loadExistingPaymentData() {
+            const paymentId = $('#payment_id').val();
+            if (!paymentId) return;
+
+            $.ajax({
+                url: '<?php echo BASE_URL; ?>modules/payments/ajax_get_payment_for_edit.php',
+                type: 'GET',
+                data: { payment_id: paymentId },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.data) {
+                        const data = response.data;
+                        
+                        // Mark existing payment rows as readonly and checked
+                        if (data.payment_details && data.payment_details.length > 0) {
+                            data.payment_details.forEach(function(payment) {
+                                // Find matching row in payment details table
+                                $('#payment_details_table tbody .payment-row').each(function() {
+                                    const $row = $(this);
+                                    const entityType = $row.data('entity-type');
+                                    const rowSupplierName = $row.find('td').eq(1).text().trim();
+                                    const ptmAmount = parseFloat($row.find('.ptm_amount').val());
+                                    
+                                    let isMatch = false;
+                                    
+                                    // Match supplier payments by supplier name and amount
+                                    if (payment.payment_category === 'Supplier' && entityType === 'supplier') {
+                                        const supplierName = payment.supplier_name || '';
+                                        if (rowSupplierName.includes(supplierName) && 
+                                            Math.abs(ptmAmount - parseFloat(payment.ptm_amount)) < 0.01) {
+                                            isMatch = true;
+                                        }
+                                    } 
+                                    // Match job card payments by contractor name and amount
+                                    else if (payment.payment_category === 'Job Card' && entityType === 'job_card') {
+                                        const contractorName = payment.contracture_name || '';
+                                        if (rowSupplierName.includes(contractorName) && 
+                                            Math.abs(ptmAmount - parseFloat(payment.ptm_amount)) < 0.01) {
+                                            isMatch = true;
+                                        }
+                                    }
+                                    
+                                    if (isMatch) {
+                                        // Fill in the payment data
+                                        $row.find('.cheque_type').val(payment.payment_type);
+                                        $row.find('.cheque_number').val(payment.cheque_number);
+                                        $row.find('.pd_acc_number').val(payment.pd_acc_number);
+                                        $row.find('.ptm_amount').val(parseFloat(payment.ptm_amount).toFixed(2));
+                                        $row.find('.payment_date').val(payment.payment_date || payment.payment_invoice_date);
+                                        
+                                        // Check the checkbox and disable the row
+                                        $row.find('.select_payment').prop('checked', true).prop('disabled', true);
+                                        $row.find('input, select').not('.select_payment').prop('disabled', true);
+                                        
+                                        // Add visual indication that this is an existing payment
+                                        $row.addClass('existing-payment').css('background-color', '#f8f9fa');
+                                        
+                                        // Add a note that this payment already exists
+                                        if (!$row.find('.existing-payment-note').length) {
+                                            $row.find('td').eq(1).append(' <small class="text-muted existing-payment-note">(Already Paid)</small>');
+                                        }
+                                        
+                                        return false; // break the loop
+                                    }
+                                });
+                            });
+                            
+                            // Recalculate totals
+                            calculatePaymentAmounts();
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading existing payment data:', error);
+                    toastr.error('Error loading existing payment data');
+                }
+            });
+        }
+        <?php endif; ?>
     });
 </script>
